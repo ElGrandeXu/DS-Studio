@@ -182,6 +182,25 @@ test('export navigateur, import valide avec diff, fichier invalide sans écritur
   );
 });
 
+test('V2 : contraste proposé immédiat sans modifier les composants enregistrés', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page
+    .getByRole('combobox', { name: 'Token', exact: true })
+    .selectOption('color.brand');
+  await page.getByLabel('Valeur du token').fill('#FFFFFF');
+  await expect(
+    page.getByText('Contraste proposé :', { exact: false }),
+  ).toContainText('1.00:1');
+  await expect(
+    page.getByText('Contraste proposé :', { exact: false }),
+  ).toContainText('Contraste à améliorer');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  const current = await (await page.request.get('/api/state')).json();
+  expect(current.tokens['color.brand'].$value).not.toBe('#FFFFFF');
+});
+
 test('V2 : brief privé persistant, indépendant du mode IA', async ({
   page,
 }) => {

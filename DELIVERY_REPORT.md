@@ -32,21 +32,35 @@ Linux, Node **22.23.4**, npm fourni avec cette distribution, Chromium Playwright
 Les tests emploient des données fictives dans des dossiers temporaires, jamais
 l’état personnel du projet.
 
-| Contrôle                          | Résultat obtenu avant qualification distante                                  |
-| --------------------------------- | ----------------------------------------------------------------------------- |
-| `npm run check` / `npm run build` | Réussis                                                                       |
-| `npm test`                        | 29 tests réussis, dont crash en écriture, concurrence, brief et sécurité HTTP |
-| `npm run test:e2e`                | 9 tests réussis ; parcours V1 conservés et nouveaux parcours V2               |
-| `npm run test:launcher`           | 22 tests réussis, dont 19 sous-tests de cycle réel                            |
-| `npm run qualify`                 | Réussi : vrai processus, verrou, persistance et annulation                    |
-| `npm audit --json`                | 0 vulnérabilité signalée à la date du contrôle                                |
-| `npm run scan`                    | Contrôle requis avant chaque publication ; résultat final indiqué ci-dessous  |
+| Contrôle                          | Résultat obtenu avant qualification distante                                   |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| `npm run check` / `npm run build` | Réussis                                                                        |
+| `npm test`                        | 210 tests réussis, dont crash en écriture, concurrence, brief et sécurité HTTP |
+| `npm run test:e2e`                | 10 tests réussis ; parcours V1 conservés et nouveaux parcours V2               |
+| `npm run test:launcher`           | 22 tests réussis, dont 19 sous-tests de cycle réel                             |
+| `npm run qualify`                 | Réussi : vrai processus, verrou, persistance et annulation                     |
+| `npm audit --json`                | 0 vulnérabilité signalée à la date du contrôle                                 |
+| `npm run scan`                    | Contrôle requis avant chaque publication ; résultat final indiqué ci-dessous   |
 
 La revue contradictoire a recherché : perte de données après mise à jour, liens
 ajoutés après init, sauvegarde impossible, copies invalides, révisions concurrentes,
 statut de panneau périmé, crash pendant écriture et dépendance du mode manuel à
 l’IA. Les défauts confirmés ont reçu des corrections et des tests ciblés.
 Les échecs intermédiaires et leurs corrections sont décrits dans le changelog.
+
+## Première qualification V2 et correction
+
+Run [40420487572](https://github.com/ElGrandeXu/DS-Studio/actions/runs/40420487572),
+commit `236205b` : Ubuntu et macOS entièrement réussis ; Windows réussit build,
+29 tests (27 exécutés, 2 symlinks explicitement ignorés), 9 tests navigateur et
+20 tests lanceurs (2 tests Linux ignorés), mais échoue dans `qualify`.
+
+Cause vérifiée : le harness envoyait `child.kill('SIGTERM')` au wrapper Windows
+puis attendait un nettoyage gracieux. Node termine de force sur Windows avec ce
+signal ; ce n’est pas le Ctrl+C d’une console. Le harness Windows utilise maintenant
+le même arrêt HTTP privé authentifié que l’interface, et conserve l’assertion de
+suppression du verrou et de persistance. Les tests de signal POSIX restent exécutés
+sous Linux/macOS. Aucun test désactivé pour rendre cette qualification verte.
 
 ## Qualification distante et publication
 

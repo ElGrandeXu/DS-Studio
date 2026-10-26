@@ -26,7 +26,11 @@ const child = spawn(
   { cwd: root, stdio: 'inherit', env: process.env },
 );
 for (const signal of ['SIGINT', 'SIGTERM'])
-  process.on(signal, () => child.kill(signal));
+  process.on(signal, () => {
+    // Windows transmet déjà Ctrl+C aux deux processus de cette console.
+    // child.kill('SIGINT') y serait une terminaison forcée, pas un transfert.
+    if (process.platform !== 'win32') child.kill(signal);
+  });
 child.on('error', () => {
   console.error('Impossible de démarrer le serveur local.');
   process.exitCode = 1;

@@ -5,6 +5,7 @@ import { mkdtemp, rm, access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readRecord, control } from './runtime.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const data = await mkdtemp(
   path.join(tmpdir(), 'ds qualification avec espaces '),
@@ -45,7 +46,19 @@ async function stop() {
       clearTimeout(timeout);
       resolve();
     });
-    current.kill('SIGTERM');
+    if (process.platform === 'win32') {
+      // child.kill('SIGTERM') est une terminaison forcée sous Windows, pas
+      // l'événement Ctrl+C d'une console. Tester le vrai protocole d'arrêt.
+      void readRecord(data, 'server')
+        .then(async (record) => {
+          if (!(await control(record, 'stop')))
+            throw new Error('Arrêt HTTP privé refusé.');
+        })
+        .catch((e) => {
+          clearTimeout(timeout);
+          reject(e);
+        });
+    } else current.kill('SIGTERM');
   });
   await assert.rejects(() => access(path.join(data, 'server.lock')));
 }

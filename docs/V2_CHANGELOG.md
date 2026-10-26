@@ -27,7 +27,7 @@
 ## Fonctionnalités ajoutées
 
 Brief privé avec contrôle de conflit, lien Figma validé mais non téléchargé,
-export Markdown ; recherche et sélecteur de couleur ; brouillon par onglet avec
+export Markdown ; recherche, sélecteur de couleur et contraste proposé immédiat ; brouillon par onglet avec
 abandon explicite ; accès clavier direct et navigation des panneaux ; blocage du
 diff périmé ; sauvegarde de la révision précédente et restauration guidée.
 
@@ -55,6 +55,12 @@ conservation après changement de seed. Une erreur de synchronisation du test de
 Tab (avant montage React) a été reproduite et corrigée en attendant la vraie UI,
 sans supprimer le contrôle clavier. Le scan a signalé une URL de credentials
 **fictive dans un test** ; fixture reformulée, aucune exception de scan ajoutée.
+
+La première CI V2 a aussi identifié une hypothèse POSIX dans le harness Windows :
+`child.kill('SIGTERM')` y termine de force. Le test Windows emploie maintenant
+l’arrêt HTTP privé réel, toujours avec contrôle de libération du verrou. Le wrapper
+terminal ne transforme plus le Ctrl+C Windows en kill forcé du serveur enfant ;
+le geste de console natif reste à tester sur un poste Windows.
 
 Comptages, résultats CI et limites exactes : [rapport de livraison](../DELIVERY_REPORT.md).
 Un scénario simulé de capacité expirée est complété par un onglet réel conservé

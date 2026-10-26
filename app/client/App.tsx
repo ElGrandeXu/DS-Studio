@@ -214,6 +214,16 @@ export default function App() {
     );
   const selectedAgent = agents.find((a) => a.id === agent);
   const staleProposal = !!proposal && proposal.revision !== state.revision;
+  const draftContrast =
+    /^#[0-9a-fA-F]{6}$/.test(draft) &&
+    (key === 'color.brand' || key === 'color.onBrand')
+      ? contrast(
+          key === 'color.brand' ? draft : state.tokens['color.brand'].$value,
+          key === 'color.onBrand'
+            ? draft
+            : state.tokens['color.onBrand'].$value,
+        )
+      : undefined;
   const matchingKeys = tokenKeys.filter((k) =>
     k.toLowerCase().includes(search.trim().toLowerCase()),
   );
@@ -597,6 +607,16 @@ export default function App() {
                 ? 'AA texte courant'
                 : 'Contraste à améliorer'}
             </p>
+            {draftContrast !== undefined && draft !== String(current) && (
+              <p className="contrast" role="status">
+                Contraste proposé :{' '}
+                <strong>{draftContrast.toFixed(2)}:1</strong> ·{' '}
+                {draftContrast >= 4.5
+                  ? 'AA texte courant'
+                  : 'Contraste à améliorer'}
+                . Cette indication ne certifie pas tous les états du composant.
+              </p>
+            )}
           </div>
           <Catalogue tokens={state.tokens} />
         </section>

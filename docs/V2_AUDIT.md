@@ -10,7 +10,7 @@ Arbre local initial propre ; tag `v1.0.0-starter` préservé. Audit du 27 octobr
 - Windows : après crash du panneau, PID du serveur perdu. Le serveur hérite de pipes du panneau ; indépendance du processus à corriger et qualifier.
 - macOS : refus après un verrou de PID étranger mort, puis cascade de tests. Cause initiale non établie par les logs V1.1, insuffisamment détaillés ; diagnostic ajouté aux assertions. Les cas suivants ne prouvent pas des pannes indépendantes.
 - Persistance : remplacement atomique et file de commits présents ; aucune copie de secours de l’état précédent ni récupération guidée.
-- Interface : erreur de session après redémarrage sans récupération automatique ; rechargement perd le brouillon ; session HTTP non renouvelée après redémarrage ; état manuel inutilement couplé à la détection IA.
+- Interface : rechargement perd le brouillon ; session HTTP non renouvelée après redémarrage ; état manuel inutilement couplé à la détection IA.
 - Architecture : composants réellement partagés, imports stricts et refus de propositions périmées déjà présents. Profil Codex sans outils conservé. Claude/Gemini et Figma non implémentés, sans simulation.
 
 ## Hypothèses / limites de qualification
