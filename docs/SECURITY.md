@@ -1,4 +1,4 @@
-# Périmètre et sécurité V1
+# Périmètre et sécurité V2
 
 ## Ce qui est effectivement contrôlé
 
@@ -66,3 +66,13 @@ pas une preuve mathématique d’absence de secret. Relire le contenu indexé ; 
 
 Les skills sont des instructions, pas un contrôle d’accès. Le Codex qui développe
 le projet dans un terminal a ses permissions propres, distinctes du profil embarqué.
+
+## Données V2
+
+Le brief du panneau est privé (`project.json`) et limité aux champs nom, public,
+objectif et lien Figma HTTPS `www.figma.com`, sans identifiants dans l’URL. Le lien
+n’est ni téléchargé ni envoyé à Figma. Le brief rejoint le contexte cloud uniquement
+lors d’un envoi explicite au chat Codex, conformément à la notice du formulaire.
+Les exports Markdown peuvent contenir vos informations : relisez avant de partager.
+La récupération conserve l’original dans le même dossier privé. Aucune copie de
+secours, archive ou journal d’exécution n’est publiée avec le code.

@@ -18,7 +18,7 @@ Une erreur reste affichée : ne supprimez jamais vos données pour la faire
 disparaître. [Guide graphique](../launcher/INSTALLATION.html) et
 [dépannage](LAUNCHER.md). Mac / Windows : validation native encore à effectuer.
 
-## Mardi matin : s’approprier le starter
+## Première prise en main : s’approprier le starter
 
 Installez depuis le README, effectuez la boucle de couleur **avant de demander à
 une IA de modifier du code**. Observez le diff, les deux viewers, la persistance
@@ -81,7 +81,7 @@ Ne rédigez pas une dissertation générale. Un bon skill évite une erreur conc
 récurrente et référence les vrais fichiers de votre projet. Testez-le sur une
 nouvelle demande : a-t-il changé utilement la décision de l’agent ? Codex découvre
 le dossier ; pour un autre CLI, faites lire le fichier explicitement avant de
-prétendre à une découverte native. Les skills de cette V1 n’accordent aucun droit Figma.
+prétendre à une découverte native. Les skills de cette V2 n’accordent aucun droit Figma.
 
 ## Vendredi : démontrer une version personnelle
 
@@ -90,3 +90,26 @@ Montrez un scénario utile, une erreur traitée, une restauration et un test ex�
 Distinguez ce qui marche, ce qui reste partiel et ce que vous avez volontairement
 écarté. Une vidéo de maquette n’est pas une preuve d’écriture ou de synchronisation.
 Gardez votre contexte personnel dans un dépôt privé et n’utilisez aucun compte partagé.
+
+## Parcours V2 sans terminal
+
+1. Ouvrez **Mon PFE · brief privé** dans le premier panneau. Décrivez le public et
+   le résultat attendu, enregistrez puis exportez le Markdown si votre agent externe
+   en a besoin. Le lien Figma est un repère, aucune connexion n’est réalisée.
+2. Recherchez `color`, `space` ou `font`. Le sélecteur visuel et la saisie partagent
+   le même brouillon. Les valeurs enregistrées restent la référence des deux viewers.
+3. Une recharge retrouve le dernier brouillon de cet onglet. **Abandonner le brouillon**
+   n’annule pas une révision : rien n’avait été enregistré. L’historique, lui, annule
+   un changement déjà validé en conservant les autres tokens.
+4. Si un autre onglet valide entre-temps, fermez le diff périmé puis refaites-le.
+   Un redémarrage fait expirer les propositions en mémoire, pas vos données.
+5. Après un fichier d’état invalide, arrêtez l’atelier et restaurez la copie précédente
+   depuis **Journal et réparation** du lanceur. L’original reste archivé. Rechargez
+   ensuite tous les onglets. En l’absence de copie valide, ne supprimez aucun fichier.
+
+Le brief privé et le brouillon ne doivent pas être publiés. Une copie externe de
+`.ds-studio/`, atelier arrêté, conserve tokens, historique, brief et secours.
+Le seed versionné est un exemple initial : changer de version du code n’efface
+pas votre état. Copier seulement la nouvelle archive dans un autre dossier ne
+transfère pas automatiquement vos données : sauvegardez-les et transférez-les
+explicitement, les deux ateliers arrêtés.

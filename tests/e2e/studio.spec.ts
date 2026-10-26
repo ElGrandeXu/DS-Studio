@@ -181,3 +181,156 @@ test('export navigateur, import valide avec diff, fichier invalide sans écritur
     after.revision,
   );
 });
+
+test('V2 : brief privé persistant, indépendant du mode IA', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByText('Mon PFE · brief privé', { exact: true }).click();
+  await page
+    .getByLabel('Nom du PFE', { exact: true })
+    .fill('Mon atelier accessible');
+  await page
+    .getByLabel('Public concerné', { exact: true })
+    .fill('Étudiants en mobilité');
+  await page
+    .getByLabel('Objectif et critères de réussite', { exact: true })
+    .fill('Réserver en moins de trois étapes');
+  await page.getByRole('button', { name: 'Enregistrer le brief' }).click();
+  await expect(page.getByText('Brief enregistré sur ce poste.')).toBeVisible();
+  await page.reload();
+  await page.getByText('Mon PFE · brief privé', { exact: true }).click();
+  await expect(page.getByLabel('Nom du PFE', { exact: true })).toHaveValue(
+    'Mon atelier accessible',
+  );
+  await expect(
+    page.getByRole('combobox', { name: 'Mode de travail' }),
+  ).toHaveValue('manual');
+});
+
+test('V2 : recherche, brouillon récupéré après recharge et abandon sans écriture', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const before = await (await page.request.get('/api/state')).json();
+  await page.getByLabel('Rechercher un token').fill('space');
+  await expect(
+    page.getByText('3 résultat(s).', { exact: false }),
+  ).toBeVisible();
+  await page
+    .getByRole('combobox', { name: 'Token', exact: true })
+    .selectOption('space.lg');
+  await page.getByLabel('Valeur du token').fill('31');
+  await expect(
+    page.getByText('Brouillon non enregistré.', { exact: false }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole('combobox', { name: 'Token', exact: true }),
+  ).toHaveValue('space.lg');
+  await expect(page.getByLabel('Valeur du token')).toHaveValue('31');
+  await expect(
+    page.getByText('Brouillon récupéré', { exact: false }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Abandonner le brouillon' }).click();
+  await expect(page.getByLabel('Valeur du token')).toHaveValue(
+    String(before.tokens['space.lg'].$value),
+  );
+  expect((await (await page.request.get('/api/state')).json()).revision).toBe(
+    before.revision,
+  );
+});
+
+test('V2 : conflit multi-onglets visible dans le diff, aucune perte de données', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/');
+  await page
+    .getByRole('combobox', { name: 'Token', exact: true })
+    .selectOption('color.brand');
+  await page.getByLabel('Valeur du token').fill('#223355');
+  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
+  const other = await context.newPage();
+  await other.goto('/');
+  await other
+    .getByRole('combobox', { name: 'Token', exact: true })
+    .selectOption('color.brand');
+  await other.getByLabel('Valeur du token').fill('#664422');
+  await other.getByRole('button', { name: 'Proposer', exact: true }).click();
+  await other.getByRole('button', { name: 'Valider et enregistrer' }).click();
+  await expect(other.getByRole('dialog')).not.toBeVisible();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('alert')).toContainText('Une autre validation');
+  await expect(
+    dialog.getByRole('button', { name: 'Valider et enregistrer' }),
+  ).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Ne pas appliquer' }).click();
+  expect(
+    (await (await page.request.get('/api/state')).json()).tokens['color.brand']
+      .$value,
+  ).toBe('#664422');
+  await other.close();
+});
+
+test('V2 : capacité de session périmée simulée sans rejeu ambigu', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('heading', { name: 'Tokens sémantiques' }).waitFor();
+  const boot = await (await page.request.get('/api/bootstrap')).json();
+  // Un seul refus certain avant mutation, comme une capacité périmée après restart.
+  let requests = 0;
+  await page.route('**/api/proposals', async (route) => {
+    requests++;
+    if (requests === 1)
+      return route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: 'Validation de session manquante. Rechargez la page.',
+        }),
+      });
+    expect(route.request().headers()['x-ds-studio']).toBe(boot.csrf);
+    return route.continue();
+  });
+  await page
+    .getByRole('combobox', { name: 'Token', exact: true })
+    .selectOption('color.focus');
+  await page.getByLabel('Valeur du token').fill('#776622');
+  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  expect(requests).toBe(2);
+  await page.keyboard.press('Escape');
+});
+
+test('V2 : clavier, mobile 375 px et absence de stockage navigateur', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException('Stockage refusé');
+    };
+    Storage.prototype.getItem = () => {
+      throw new DOMException('Stockage refusé');
+    };
+  });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  await page.getByRole('heading', { name: 'Tokens sémantiques' }).waitFor();
+  await page.keyboard.press('Tab');
+  await expect(
+    page.getByRole('link', { name: 'Aller aux tokens' }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByRole('heading', { name: 'Design System', exact: true }),
+  ).toBeFocused();
+  await page.getByLabel('Valeur du token').fill('#114477');
+  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(
+    await page.locator('body').evaluate((el) => el.scrollWidth <= innerWidth),
+  ).toBe(true);
+});

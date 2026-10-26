@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { atomicWrite, readPrivate } from './files.js';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   applyChanges,
@@ -40,11 +41,8 @@ export class Store {
     if ((await fs.lstat(this.directory)).isSymbolicLink())
       throw new StudioError('Dossier de données symbolique refusé.', 500);
     try {
-      if ((await fs.lstat(this.file)).isSymbolicLink())
-        throw new Error('Lien symbolique refusé.');
-      const raw = await fs.readFile(this.file, 'utf8');
-      this.state = stateSchema.parse(JSON.parse(raw));
-      this.validateHistory(this.state);
+      const raw = await readPrivate(this.file);
+      this.state = parseStoredState(raw);
       this.digest = this.hash(raw);
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== 'ENOENT')
@@ -59,25 +57,6 @@ export class Store {
         history: [],
       };
       await this.write(this.state);
-    }
-  }
-  private validateHistory(state: State) {
-    if (state.history.length !== state.revision)
-      throw new Error('Historique incohérent');
-    for (const [i, r] of state.history.entries())
-      if (r.revision !== i + 1) throw new Error('Historique non ordonné');
-    // Relecture inverse : chaque patch doit réellement correspondre à l'état enregistré.
-    let tokens = structuredClone(state.tokens);
-    for (const r of [...state.history].reverse()) {
-      if (new Set(r.patches.map((p) => p.key)).size !== r.patches.length)
-        throw new Error('Doublon');
-      for (const p of r.patches)
-        if (tokens[p.key].$value !== p.after)
-          throw new Error('Patch incohérent');
-      tokens = applyChanges(
-        tokens,
-        r.patches.map((p) => ({ key: p.key, value: p.before })),
-      );
     }
   }
   snapshot(): State {
@@ -143,7 +122,7 @@ export class Store {
         );
       if (p.revision !== this.state.revision)
         throw new StudioError('Proposition périmée. Refaites le diff.', 409);
-      const raw = await fs.readFile(this.file, 'utf8');
+      const raw = await readPrivate(this.file);
       if (this.hash(raw) !== this.digest)
         throw new StudioError(
           'Données modifiées hors application. Redémarrez pour les relire.',
@@ -166,6 +145,8 @@ export class Store {
         ],
       };
       // Pas de mise à jour en mémoire ni à l'écran avant la réussite du remplacement disque.
+      // La copie précédente est complète avant de remplacer l’état courant.
+      await atomicWrite(path.join(this.directory, 'state.previous.json'), raw);
       await this.write(next);
       this.state = next;
       this.proposals.delete(id);
@@ -184,20 +165,42 @@ export class Store {
         'Historique trop volumineux : exportez et archivez avant de continuer.',
         507,
       );
-    const tmp = path.join(this.directory, `state-${randomUUID()}.tmp`);
-    const handle = await fs.open(tmp, 'wx', 0o600);
-    try {
-      await handle.writeFile(raw);
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    try {
-      await fs.rename(tmp, this.file);
-    } catch (e) {
-      await fs.unlink(tmp).catch(() => {});
-      throw e;
-    }
+    await atomicWrite(this.file, raw);
     this.digest = this.hash(raw);
   }
+}
+
+export function parseStoredState(raw: string): State {
+  const state = stateSchema.parse(JSON.parse(raw));
+  if (state.history.length !== state.revision)
+    throw new Error('Historique incohérent');
+  for (const [i, r] of state.history.entries())
+    if (r.revision !== i + 1) throw new Error('Historique non ordonné');
+  // Relecture inverse : chaque patch doit réellement correspondre à l'état enregistré.
+  let tokens = structuredClone(state.tokens);
+  for (const r of [...state.history].reverse()) {
+    if (new Set(r.patches.map((p) => p.key)).size !== r.patches.length)
+      throw new Error('Doublon');
+    for (const p of r.patches)
+      if (tokens[p.key].$value !== p.after) throw new Error('Patch incohérent');
+    tokens = applyChanges(
+      tokens,
+      r.patches.map((p) => ({ key: p.key, value: p.before })),
+    );
+  }
+  return state;
+}
+
+// À appeler uniquement sous le bail serveur, après confirmation explicite.
+export async function restorePrevious(directory: string) {
+  const previous = await readPrivate(
+    path.join(directory, 'state.previous.json'),
+  );
+  const state = parseStoredState(previous);
+  const file = path.join(directory, 'state.json');
+  const original = await readPrivate(file);
+  const archive = path.join(directory, `state-preserved-${randomUUID()}.json`);
+  await atomicWrite(archive, original);
+  await atomicWrite(file, previous);
+  return { revision: state.revision, preserved: path.basename(archive) };
 }

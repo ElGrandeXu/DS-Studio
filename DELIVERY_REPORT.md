@@ -1,163 +1,72 @@
-# DS-Studio V1.1 — livraison du lanceur multiplateforme
+# DS-Studio V2 — rapport de livraison
 
-Date : **27 octobre 2026** (travail commencé le 26). Dépôt existant conservé.
-**Statut : TESTED sur Linux pour les parcours ci-dessous ; macOS / Windows PARTIAL.**
-L’implémentation initiale a été livrée sans commit ni push. Max a ensuite autorisé
-explicitement la publication sur `origin/main`, avec le commit
-`feat: add cross-platform DS-Studio launchers` et le tag `v1.1.0-launchers`.
-Le tag existant `v1.0.0-starter` est conservé sans modification. Aucune nouvelle
-release GitHub, aucun dépôt ni déploiement ne fait partie de cette publication.
+Date : **27 octobre 2026**. Base : `ed6ead0` / `v1.1.0-launchers`, initialement
+publiée et propre. Développement sur `codex/v2` ; tags V1 préservés. Aucun fichier
+de MARC ni configuration personnelle modifié. Aucune nouvelle dépendance.
 
-## Résultat utilisable
+## Résultat
 
-Double-cliquer sur **DS-Studio.desktop** sous Linux. Le panneau léger s’ouvre dans
-le navigateur existant, sans terminal. Si l’atelier est prêt et arrêté, il démarre
-et s’ouvre automatiquement. S’il est déjà actif, le même panneau est retrouvé,
-sans second serveur. Boutons : Démarrer, Ouvrir, Arrêter, Redémarrer, et Arrêter
-et quitter le lanceur. États : arrêté, démarrage, actif, erreur.
+V2 conserve la boucle pédagogique de V1.1 et ajoute un brief PFE privé exportable,
+la recherche et l’édition typée des tokens, la reprise du brouillon, les conflits
+visibles, le renouvellement de session, la copie précédente et une restauration
+confirmée qui archive l’original. Le serveur est indépendant du panneau. Le mode
+manuel reste disponible sans compte IA, sans Figma et hors ligne après installation.
 
-Au premier lancement, les dépendances / le build manquants demandent une préparation
-explicitement confirmée avant `npm ci` et `npm run build`. Node 22.12+ est recherché
-hors PATH, y compris dans l’installation utilisateur du MSI. Si absent ou trop
-ancien, un guide HTML local explique une installation graphique officielle.
-Aucune commande privilégiée, installation Node, configuration système ou connexion
-IA n’est exécutée automatiquement. Aucun paquet npm supplémentaire ajouté.
+[Audit et backlog](docs/V2_AUDIT.md) · [Changelog et décisions](docs/V2_CHANGELOG.md) ·
+[Tests reproductibles](docs/TESTING.md) · [Guide étudiant](docs/STUDENT_GUIDE.md).
 
-Le même contrôleur est appelé par **DS-Studio.app** sur Mac et **DS-Studio.vbs** sur
-Windows. Ce sont des entrées légères, pas une nouvelle application Electron.
-**Ces deux entrées n’ont pas été exécutées sur macOS / Windows.** Mac : bundle non
-signé / non notarié, contrôle de quarantaine à qualifier. Windows : Windows Script
-Host / VBScript doit être disponible et autorisé. Aucun contournement automatique
-d’une politique d’établissement. Le [guide graphique](launcher/INSTALLATION.html)
-explique ces limites et les actions accessibles sans terminal.
+## Audit CI de départ
 
-## Corrections de fiabilité
+Run V1.1 [40418398973](https://github.com/ElGrandeXu/DS-Studio/actions/runs/40418398973) :
+build, tests API et navigateur réussis sur les trois OS, suite lanceurs en échec.
 
-L’ancien démarrage créait un verrou par `writeFile(..., {flag: 'wx'})` et refusait
-ensuite tout fichier existant, y compris le PID d’une instance morte. La récupération
-nécessitait donc une intervention manuelle après crash.
+| Plateforme | Échec observé                                                             | Traitement V2                                                                                                      |
+| ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Ubuntu     | Le test attend un Node utilisateur alors qu’un Node système valide existe | Test portable et absence testée en isolation                                                                       |
+| Windows    | PID serveur perdu après crash du panneau                                  | Serveur détaché sans pipes du panneau ; qualification CI requise                                                   |
+| macOS      | Refus après PID étranger mort puis échecs en cascade                      | Assertions diagnostiques et protection contre statut asynchrone périmé ; cause V1.1 non prouvée par ses seuls logs |
 
-Le mécanisme partagé du serveur et du contrôleur possède désormais :
+## Vérifications locales exécutées
 
-- Une identité privée par instance : PID, identifiant aléatoire, capacité, racine,
-  dossier et port ; publication atomique des fichiers de verrouillage.
-- Un garde noyau loopback par dossier canonique / rôle, conservé pendant toute
-  la vie de l’instance. Il empêche deux écrivains et sérialise la récupération.
-- Une récupération automatique uniquement pour un PID disparu. Les anciens
-  verrous numériques morts sont reconnus. Un PID vivant ou réutilisé, un verrou
-  mal formé ou un lien symbolique n’est jamais supprimé automatiquement.
-- Un arrêt HTTP privé après vérification de l’identité complète, sans signal à
-  un PID inconnu. Le serveur ferme ses requêtes et attend sa file d’écritures,
-  puis libère son propre verrou. Aucun killall / pkill / taskkill.
-- Des opérations du panneau sérialisées, y compris deux clics simultanés. Un crash
-  du seul panneau permet de retrouver et d’arrêter le serveur encore vivant.
+Linux, Node **22.23.4**, npm fourni avec cette distribution, Chromium Playwright.
+Les tests emploient des données fictives dans des dossiers temporaires, jamais
+l’état personnel du projet.
 
-Un port de protection occupé provoque un refus sûr, pas une suppression de données.
-Les requêtes du panneau exigent une capacité privée, l’hôte exact et une origine
-locale ; cross-site est refusé. Aucun accès libre aux fichiers ou aux commandes.
-Le projet et les dépendances npm doivent néanmoins provenir d’une source de confiance.
-Détails : [LAUNCHER](docs/LAUNCHER.md), [SECURITY](docs/SECURITY.md).
+| Contrôle                          | Résultat obtenu avant qualification distante                                  |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `npm run check` / `npm run build` | Réussis                                                                       |
+| `npm test`                        | 29 tests réussis, dont crash en écriture, concurrence, brief et sécurité HTTP |
+| `npm run test:e2e`                | 9 tests réussis ; parcours V1 conservés et nouveaux parcours V2               |
+| `npm run test:launcher`           | 22 tests réussis, dont 19 sous-tests de cycle réel                            |
+| `npm run qualify`                 | Réussi : vrai processus, verrou, persistance et annulation                    |
+| `npm audit --json`                | 0 vulnérabilité signalée à la date du contrôle                                |
+| `npm run scan`                    | Contrôle requis avant chaque publication ; résultat final indiqué ci-dessous  |
 
-## Validation Linux exécutée
+La revue contradictoire a recherché : perte de données après mise à jour, liens
+ajoutés après init, sauvegarde impossible, copies invalides, révisions concurrentes,
+statut de panneau périmé, crash pendant écriture et dépendance du mode manuel à
+l’IA. Les défauts confirmés ont reçu des corrections et des tests ciblés.
+Les échecs intermédiaires et leurs corrections sont décrits dans le changelog.
 
-Environnement : Linux Mint 22.3 x86_64, session Xfce/X11, Node **22.23.4**,
-Chromium Playwright et navigateur système Firefox via `xdg-open`.
-Les tests utilisent des projets / données temporaires, pas le journal étudiant.
+## Qualification distante et publication
 
-| Vérification                | Résultat réellement observé                                                                                |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `npm run check`             | TypeScript réussi                                                                                          |
-| `npm run build`             | Compilation TypeScript et Vite réussie, bundle V1 inchangé fonctionnellement                               |
-| `npm test`                  | **21 tests réussis**, aucun échec ni test ignoré                                                           |
-| `npm run test:e2e`          | **4 tests réussis** : parcours V1, diff, persistance, viewers, responsive, import/export                   |
-| `npm run test:launcher`     | **20 tests réussis**, aucun échec ni test ignoré ; vraie première installation dans une copie vide         |
-| `npm run qualify`           | Ancien lanceur terminal, verrou interprocessus, écriture, arrêt, relance, persistance et undo réussis      |
-| `npm run qualify:desktop`   | Vrai `.desktop` exécuté par GIO, ouverture du navigateur système, boutons du panneau et relance réussis    |
-| Contrôles statiques         | `desktop-file-validate`, `sh -n`, lecture plist et script Windows ASCII, `git diff --check` réussis        |
-| Anciennes entrées Linux     | `npm start` et `start.sh` réellement lancés ; HTTP et arrêt propre vérifiés, Node hors PATH pour le script |
-| Contrôle de publication     | **78 fichiers publiables, 0 alerte** ; fichiers suivis, nouveaux non ignorés et index existant             |
-| Audit npm avant publication | **0 vulnérabilité signalée** par `npm audit`, dépendances de développement incluses                        |
+**Qualification de la branche en cours ; main et tag v2.0.0 non modifiés à ce stade.**
+Cette section est complétée seulement après observation des résultats GitHub.
+Aucune CI en échec, divergence distante ou alerte de secret non résolue ne doit
+être contournée pour publier. Le tag final ne doit pointer que sur le commit validé.
 
-Avant le commit V1.1, la compilation, les 21 tests V1, les 20 tests du lanceur,
-les 4 tests navigateur et la qualification du lancement terminal ont été rejoués
-avec succès. Aucun nouveau code fonctionnel n’a été ajouté pendant cette étape.
+## Limites à transmettre aux 19 étudiants
 
-La suite launcher vérifie notamment :
-
-1. Premier lancement sans dépendances, deux entrées simultanées, absence d’installation
-   implicite, refus sans confirmation et annulation réelle du dialogue Chromium.
-2. `npm ci` et compilation réellement exécutés après confirmation ; panneau et atelier
-   ouverts dans Chromium ; fermeture du navigateur sans arrêt du serveur.
-3. Arrêt propre, redémarrage, changements de PID, conservation octet par octet de
-   l’état après une modification réellement validée dans l’API.
-4. Cinq serveurs concurrents refusés sur les mêmes données, ports différents ; deux
-   clics Démarrer sérialisés ; processus étranger et verrou actif intacts.
-5. Port application occupé sans arrêt de l’occupant ; crash SIGKILL et récupération ;
-   crash du contrôleur seul ; ancien verrou PID mort ; état corrompu, verrou invalide
-   et lien symbolique conservés sans remise à zéro ; quitter puis relancer.
-
-La découverte Node hors PATH est exercée avec un domicile temporaire et aussi par
-le vrai bootstrap du `.desktop` avec `/usr/bin:/bin` seulement dans le PATH.
-L’absence de Node est exercée dans un environnement isolé sans candidat disponible ;
-aucune désinstallation du Node réel. Un ouvreur de navigateur persistant de test
-ne bloque pas Arrêter / Quitter. Les limites exactes sont dans [TESTING](docs/TESTING.md).
-
-Le test graphique exécute le `.desktop` depuis un projet déplacé dont le chemin
-contient espaces, accents, apostrophe et dollar. Il vérifie double lancement,
-ouverture réelle, redémarrage, arrêt par bouton, nouveau lancement automatique
-après arrêt et fermeture du contrôleur. GIO exerce l’entrée du double-clic ; ce
-n’est pas une manipulation physique de souris ni une qualification de tous les
-bureaux Linux. Capture locale : `test-results/launcher-linux.png` (ignorée par Git).
-
-Les essais ont également détecté et corrigé un échappement `.desktop` refusé par
-GLib malgré le validateur, un état/pid transitoirement absent pendant une opération,
-et une course entre ouverture automatique et demande de fermeture. Les assertions
-correspondantes et la qualification réelle ont été rejouées après correction.
-
-## Préservation et périmètre
-
-`.ds-studio/state.json` du projet original conserve exactement l’empreinte relevée
-avant intervention. Les écritures / crashes de qualification portent uniquement
-sur les fixtures. Aucun fichier de MARC, document personnel ou identifiant de
-compte modifié. Aucun processus Node étranger terminé. Aucun compte IA ni accès
-Figma nécessaire, aucun test connecté consommant du quota relancé.
-
-Le mode manuel et l’architecture React / serveur HTTP / store ne sont pas refondus.
-Les seules modifications applicatives ajoutent le cycle de vie privé, le verrou
-récupérable et l’attente des écritures à l’arrêt. Les anciens `npm start`, `start.sh`,
-`start.command` et `start.cmd` restent disponibles ; Linux / lanceur commun testés,
-les deux scripts natifs macOS et Windows demeurent à vérifier sur leurs OS.
-
-## Fichiers destinés à publication
-
-Entrées OS, contrôleur et runtime standard, interface et guide graphique sous
-`launcher/`, tests launcher et qualification desktop, mise à jour des guides,
-du README, de la CI et du présent rapport. Le scan existant inclut désormais les
-nouveaux fichiers non ignorés : aucun besoin de les indexer pour les contrôler.
-
-Les dépendances, builds, captures, caches, fichiers d’authentification et `.ds-studio/`
-restent ignorés. Le scan est heuristique : il ne garantit pas mathématiquement
-l’absence de tout secret. Aucun chemin propre au MSI n’est inscrit dans les
-lanceurs publiables. Modes exécutables des entrées Unix conservés sur disque ;
-une archive / un bureau peut encore demander une autorisation explicite.
-
-La CI inclut désormais `test:launcher` sur Linux, macOS et Windows. Ses résultats
-distants doivent être consultés après publication ; les preuves rapportées ici
-sont celles des exécutions locales Linux. La matrice
-native de [TESTING](docs/TESTING.md) reste à exécuter avant de qualifier Finder et
-Windows Script Host pour la classe. La validation personnelle par l’enseignant
-n’est pas remplacée par ces tests automatisés.
-
-## Limites conservées de V1
-
-Le cœur manuel est autonome après installation. Le chat Codex demeure facultatif
-et dépend de son compte, de son réseau et de la version qualifiée précédemment.
-Claude, Gemini et Figma ne deviennent pas opérationnels par ce travail. Le stockage
-n’est ni une sauvegarde automatique ni une garantie face à une panne électrique.
-Les propositions non validées en mémoire sont perdues à l’arrêt, pas les tokens
-et l’historique enregistrés. Un fichier d’état corrompu est préservé, jamais effacé.
-
-Le contrôle de fraîcheur du build utilise les dates de fichiers ; après restauration
-de timestamps anciens, demander volontairement une recompilation. Une collision
-sur un port auxiliaire peut empêcher le démarrage sans danger pour les données.
-Aucune protection contre un programme malveillant déjà exécuté sous le même compte.
+- La CI exécute le contrôleur sur trois OS ; elle ne certifie ni le double-clic
+  Finder, Gatekeeper, SmartScreen, Windows Script Host ni les politiques de l’école.
+- Node 22.12+ avec npm doit être installé officiellement. Aucun sudo ni service
+  persistant, aucune modification de protection ou d’identifiant.
+- Une sauvegarde externe reste nécessaire. La copie précédente est locale et ne
+  garantit pas la récupération après panne électrique. Après restauration, recharger.
+- Claude/Gemini et Figma restent non implémentés. Le lien Figma du brief ne connecte
+  rien. Le chat Codex reste sur son profil qualifié 0.164.0 ; aucun test cloud V2
+  exécuté ni quota étudiant promis. CLI manquant et auth indisponible sont testés
+  hors ligne par des processus contrôlés et des fixtures explicites.
+- Accessibilité testée au clavier et sur petits viewports, pas certification WCAG.
+  Les choix du PFE et les composants peuvent être librement personnalisés, avec
+  migration explicite si les clés de tokens évoluent.

@@ -20,7 +20,7 @@ Aucune chronologie unique ni obligation de tout construire. Pour chaque piste,
 | Distribution     | Packaging desktop, signature Mac, installation Windows, gestion sûre des mises à jour               | Installation et désinstallation sur un vrai OS cible                    |
 | Stockage         | Sauvegardes automatiques bornées, migration de schéma, verrous robustes après crash                 | Récupération d’un état corrompu sans perdre le fichier original         |
 
-## Hors promesses de V1
+## Hors promesses de V2
 
 Pas de synchronisation Figma, de génération de tout un DS depuis une capture,
 d’émulation iOS native, d’orchestration multi-agent parallèle, de publication
@@ -32,3 +32,20 @@ Une modification de composant, une règle documentée et un test utilisateur peu
 suffire à une itération. Gardez une décision de poursuite ou d’abandon dans
 `workspace/DECISIONS.md`. Les recherches et refus d’une fausse bonne idée font
 partie du résultat, à condition que le scénario démontré reste fonctionnel.
+
+## Bilan V2 et suite priorisée
+
+Livré : recherche de tokens, brief privé et export Markdown, brouillon récupérable,
+conflits visibles, copie précédente et restauration explicite, cycle serveur détaché,
+tests de crash et qualification trois OS. [Audit priorisé](V2_AUDIT.md).
+
+Prochain P0 : essais Finder/Gatekeeper et Windows Script Host/SmartScreen sur les
+postes de la promotion, sans désactiver leurs protections. Alternatives de packaging
+signé seulement si les politiques réelles le nécessitent.
+
+P1 : tests avec étudiants, lecteurs d’écran, Safari/Firefox, recherche de composants,
+contrastes de tous les états et migration pédagogique pour étendre les tokens.
+
+P2 : Claude/Gemini embarqués, streaming Codex et formats d’échange enrichis restent
+à qualifier ; Figma exige une cible explicite et un connecteur officiel autorisé.
+Aucune de ces intégrations n’est simulée dans la V2.

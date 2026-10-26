@@ -36,7 +36,8 @@ async function refresh() {
           state.phase !== 'actif' &&
           state.phase !== 'erreur') ||
         (name === 'start' && (!state.ready || state.phase === 'actif')) ||
-        (name === 'prepare' && state.phase === 'actif');
+        (name === 'prepare' && state.phase === 'actif') ||
+        (name === 'restore' && (!state.backup || !!state.pid));
     }
   } catch (error) {
     document.querySelector('#error').textContent =
@@ -53,9 +54,10 @@ for (const button of document.querySelectorAll('[data-action]'))
       )
     )
       return;
+    if (name === 'restore' && !confirm('Restaurer la révision précédente des tokens et de l’historique ? L’état actuel sera archivé dans le dossier privé, même s’il est invalide. Le brief PFE ne change pas.')) return;
     pending = true;
     try {
-      await request(name, name === 'prepare' ? { confirm: true } : {});
+      await request(name, ['prepare', 'restore'].includes(name) ? { confirm: true } : {});
       if (name === 'quit') {
         quitting = true;
         document.querySelector('#feedback').textContent =

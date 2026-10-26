@@ -41,7 +41,7 @@ Les erreurs d’auth de la suite normale sont simulées pour rester hors ligne. 
 ajoute une vérification optionnelle avec un CODEX_HOME temporaire vide,
 sans modifier le compte enseignant ; sa portée exacte figure dans DELIVERY_REPORT.
 
-## Matrice restante
+## Qualification et limites
 
 ### Session graphique Linux
 
@@ -61,9 +61,9 @@ lancement ; il effectue réellement `npm ci` puis `npm run build`, après avoir
 vérifié le refus sans confirmation et l’annulation du dialogue du navigateur.
 Il nécessite donc Internet / le cache npm et Chromium de test. Le test Node hors
 PATH utilise un domicile temporaire et ne désinstalle ni ne déplace le Node réel.
-Le test d’absence est exécuté quand les emplacements fixes de la machine n’en
-contiennent pas ; il ne doit pas être interprété comme un succès simulé sur toute
-machine. Les fixtures sont supprimées après arrêt de leurs processus.
+La branche utilisateur et la branche absence sont aussi testées dans une copie
+du script dont les seuls chemins système fixes sont neutralisés. Le script livré
+est testé séparément avec les installations réellement présentes sur le runner. Les fixtures sont supprimées après arrêt de leurs processus.
 
 ### macOS et Windows : validation native obligatoire avant diffusion en classe
 
@@ -96,3 +96,23 @@ un des points essentiels demeure bloqué par une politique locale.
 Avant une nouvelle intégration : authentification officielle, droits minimaux,
 refus et arrêt, révision concurrente, erreurs de réseau/quota, isolation des outils,
 proposition/acceptation et relecture. Une interface définie ne compte pas comme un test.
+
+## Contrôles V2 supplémentaires
+
+- `tests/crash.test.ts` : processus tué brutalement pendant une rafale de commits ;
+  relecture et validation du fichier courant et de sa copie précédente. Ne simule
+  pas une panne électrique ou une corruption du système de fichiers.
+- `tests/project.test.ts` : brief privé, deux sauvegardes concurrentes, liens Figma
+  non autorisés et fichier invalide préservé.
+- Store : copie/restauration/archivage, sauvegarde impossible sans commit,
+  lien ajouté après ouverture et seed changé sans remise à zéro de données.
+- HTTP : bootstrap manuel indépendant d’un CLI bloqué et API de brief fermée.
+- Navigateur : brief persistant, brouillon après recharge, recherche, conflits entre
+  onglets, renouvellement de capacité simulé, clavier à 375 px et stockage refusé.
+- Lanceur : onglet conservé pendant un **vrai redémarrage**, récupération de session
+  et diff sans écriture ; restauration réelle et refus sans confirmation.
+
+Les résultats exacts et les échecs corrigés sont dans [DELIVERY_REPORT](../DELIVERY_REPORT.md).
+La CI conserve sept jours les traces/captures de données fictives. Les tests normaux
+ne contactent aucun fournisseur IA. `npm audit` complète le scan heuristique local ;
+il consulte le registre npm, sans ouvrir les fichiers d’authentification de la machine.

@@ -14,7 +14,8 @@ npm, Python, Rust, Electron ou compte IA n’est requis par ce lanceur.
 | macOS   | `DS-Studio.app`, petit bundle shell Finder                           | Non signé / non notarié, quarantaine et translocation à qualifier sur Mac          |
 | Windows | `DS-Studio.vbs`, Windows Script Host, `windowsHide` pour les enfants | VBScript peut être absent ou désactivé ; aucune activation automatique             |
 
-Seul Linux est testé dans cette livraison. Le bundle Mac et le script Windows ne
+Le cycle contrôleur/serveur est qualifié automatiquement par CI ; les essais natifs
+Finder/Windows Script Host restent distincts. Voir DELIVERY_REPORT.md pour les résultats. Le bundle Mac et le script Windows ne
 sont pas présentés comme des binaires installables signés. Une machine administrée
 qui les bloque nécessite l’aide de l’établissement, pas un contournement de ses
 protections. [Instructions graphiques](../launcher/INSTALLATION.html).
@@ -117,3 +118,24 @@ Les points d’entrée sont relatifs à leur propre emplacement. Ne copiez pas u
 `.desktop` ou un `.app` seul sur le Bureau : créez un raccourci vers l’original.
 Pour le port et le dossier de données personnalisés par environnement, voir le
 [guide enseignant](TEACHER_GUIDE.md) ; aucune requête réseau ne choisit ces chemins.
+
+## Restauration V2
+
+Avant chaque commit, l’état précédent complet est enregistré dans
+`.ds-studio/state.previous.json`. Pour revenir à cette copie :
+
+1. Arrêter l’atelier ; ouvrir **Journal et réparation de l’installation**.
+2. Cliquer **Restaurer la copie précédente…** puis lire et confirmer l’effet.
+3. Le contrôleur prend le bail exclusif, valide la copie et archive l’original
+   sous `state-preserved-….json`, sans le supprimer. Le brief reste inchangé.
+4. Démarrer puis recharger les onglets. Une proposition antérieure doit être refaite.
+
+Si la copie est invalide, la restauration échoue sans toucher au courant. Une
+seule génération est conservée automatiquement : ce n’est pas une sauvegarde
+externe ni un outil de réparation disque. Les archives de réparation ne sont
+pas supprimées automatiquement. Copiez le dossier privé hors du projet, atelier
+arrêté, avant une mise à jour importante.
+
+Le serveur est détaché du panneau et son journal est un fichier privé, pour qu’un
+crash du panneau ne coupe pas ses pipes. Un nouveau double-clic retrouve le même
+serveur par identité HTTP ; aucun PID inconnu n’est terminé.

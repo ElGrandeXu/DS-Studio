@@ -297,7 +297,10 @@ test(
             original,
           );
           assert.equal((await serverState()).revision, 0);
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
         },
       );
       let saved;
@@ -328,7 +331,10 @@ test(
           assert.equal((await action('stop')).phase, 'arrêté');
           assert.equal(alive(oldPID), false);
           await assert.rejects(fs.access(path.join(data, 'server.lock')));
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
           const newPID = (await request('status')).pid;
           assert.notEqual(newPID, oldPID);
           assert.equal((await action('restart')).phase, 'actif');
@@ -338,6 +344,26 @@ test(
             saved,
           );
           assert.equal((await serverState()).revision, 1);
+        },
+      );
+      await t.test(
+        'onglet conservé pendant un vrai redémarrage : session renouvelée, diff sans écriture',
+        async () => {
+          const { chromium } = await import('@playwright/test');
+          browser = await chromium.launch();
+          const page = await browser.newPage();
+          await page.goto(`http://127.0.0.1:${port}`);
+          await page.getByLabel('Valeur du token').fill('#224477');
+          await action('restart');
+          await page
+            .getByRole('button', { name: 'Proposer', exact: true })
+            .click();
+          await page.getByRole('dialog').waitFor();
+          assert.match(await page.getByRole('dialog').textContent(), /#224477/);
+          assert.equal((await serverState()).revision, 1);
+          await page.keyboard.press('Escape');
+          await browser.close();
+          browser = undefined;
         },
       );
       await t.test(
@@ -370,7 +396,10 @@ test(
           process.kill(record.pid, 'SIGKILL');
           await until(() => !alive(record.pid), 'PID crashé disparu');
           await fs.access(path.join(data, 'server.lock'));
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
           assert.equal(
             await fs.readFile(path.join(data, 'state.json'), 'utf8'),
             saved,
@@ -389,7 +418,10 @@ test(
           assert.equal((await request('status')).pid, serverPID);
           assert.equal((await action('stop')).phase, 'arrêté');
           assert.equal(alive(serverPID), false);
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
         },
       );
       await t.test(
@@ -413,7 +445,10 @@ test(
           } finally {
             await new Promise((resolve) => occupant.close(resolve));
           }
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
         },
       );
       await t.test(
@@ -448,7 +483,10 @@ test(
           unrelated.kill();
           await exit;
           unrelated = undefined;
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
         },
       );
       await t.test(
@@ -485,6 +523,31 @@ test(
             await fs.readFile(path.join(data, 'state.json'), 'utf8'),
             '{corrompu',
           );
+          await fs.writeFile(path.join(data, 'state.json'), saved);
+        },
+      );
+      await t.test(
+        'restauration guidée, confirmation et original conservé',
+        async () => {
+          assert.equal((await request('status')).backup, true);
+          assert.equal((await action('restore')).phase, 'erreur');
+          const result = await action('restore', { confirm: true });
+          assert.equal(result.phase, 'arrêté', JSON.stringify(result));
+          assert.match(result.output, /Original conservé/);
+          const archives = (await fs.readdir(data)).filter((file) =>
+            file.startsWith('state-preserved-'),
+          );
+          assert.equal(archives.length, 1);
+          assert.equal(
+            await fs.readFile(path.join(data, archives[0]), 'utf8'),
+            saved,
+          );
+          assert.equal(
+            JSON.parse(await fs.readFile(path.join(data, 'state.json'), 'utf8'))
+              .revision,
+            0,
+          );
+          // Replacer la fixture d'origine pour poursuivre les cas V1.1 indépendants.
           await fs.writeFile(path.join(data, 'state.json'), saved);
         },
       );
@@ -530,14 +593,20 @@ test(
       await t.test(
         'quitter le contrôleur et relancer sans terminal ni état perdu',
         async () => {
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
           const old = await readRecord(data, 'launcher');
           assert.equal((await request('quit', {})).code, 202);
           await until(() => !alive(old.pid), 'contrôleur quitté');
           await assert.rejects(fs.access(path.join(data, 'server.lock')));
           launcher = await launch();
           assert.equal((await request('status')).phase, 'arrêté');
-          assert.equal((await action('start')).phase, 'actif');
+          {
+            const result = await action('start');
+            assert.equal(result.phase, 'actif', JSON.stringify(result));
+          }
           assert.equal(
             await fs.readFile(path.join(data, 'state.json'), 'utf8'),
             saved,
@@ -577,24 +646,43 @@ test(
       const result = await exec('/bin/sh', ['-c', script, 'sh', source], {
         env: { HOME: temp, PATH: '/usr/bin:/bin' },
       });
-      assert.equal(result.stdout, path.join(bin, 'node'));
+      assert(result.stdout, 'Un Node valide doit être découvert hors PATH');
+      await exec(result.stdout, [
+        '-e',
+        'if(Number(process.versions.node.split(".")[0])<22)process.exit(1)',
+      ]);
+      // Test isolé de la branche utilisateur, même si le runner a un Node système.
+      const finder = await fs.readFile(
+        path.join(source, 'launcher/find-node.sh'),
+        'utf8',
+      );
+      const isolated = path.join(temp, 'find-node.sh');
+      await fs.writeFile(
+        isolated,
+        finder.replace(
+          '/usr/local/bin/node /opt/homebrew/bin/node /usr/bin/node',
+          '/missing-node-system',
+        ),
+      );
+      const own = await exec(
+        '/bin/sh',
+        ['-c', '. "$1"; find_node; printf "%s" "$DS_NODE"', 'sh', isolated],
+        {
+          env: { HOME: temp, PATH: '/nonexistent' },
+        },
+      );
+      assert.equal(own.stdout, path.join(bin, 'node'));
       await fs.rm(path.join(temp, '.local'), { recursive: true });
       // Sur le MSI /usr/bin et /usr/local/bin n'ont pas de Node. Si la machine
       // de test en possède un, l'absence n'est pas simulée comme un succès.
-      if (
-        ![
-          '/usr/bin/node',
-          '/usr/local/bin/node',
-          '/opt/homebrew/bin/node',
-        ].some(existsSync)
-      ) {
+      {
         const probe = await exec(
           '/bin/sh',
           [
             '-c',
-            '. "$1/launcher/find-node.sh"; if find_node; then printf found; else printf absent; fi',
+            '. "$1"; if find_node; then printf found; else printf absent; fi',
             'sh',
-            source,
+            isolated,
           ],
           { env: { HOME: temp, PATH: '/nonexistent' } },
         );

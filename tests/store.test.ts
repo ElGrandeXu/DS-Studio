@@ -150,3 +150,78 @@ test('contraste noir/blanc et identité', () => {
   assert.equal(contrast('#000000', '#FFFFFF'), 21);
   assert.equal(contrast('#123456', '#123456'), 1);
 });
+
+test('copie précédente complète, restauration explicite et original corrompu archivé', async (t) => {
+  const { store, dir } = await fixture(t);
+  const { restorePrevious } = await import('../app/server/store.js');
+  const original = await readFile(store.file, 'utf8');
+  await store.commit(
+    store.propose(0, [{ key: 'color.brand', value: '#445566' }]).id,
+  );
+  assert.equal(
+    await readFile(path.join(dir, 'state.previous.json'), 'utf8'),
+    original,
+  );
+  await writeFile(store.file, '{interruption');
+  const restored = await restorePrevious(dir);
+  assert.equal(restored.revision, 0);
+  assert.equal(
+    await readFile(path.join(dir, restored.preserved), 'utf8'),
+    '{interruption',
+  );
+  assert.equal(await readFile(store.file, 'utf8'), original);
+  const reopened = new Store(dir, {
+    ...seed,
+    'color.brand': { $type: 'color', $value: '#000000' },
+  });
+  await reopened.init();
+  assert.equal(
+    reopened.snapshot().tokens['color.brand'].$value,
+    seed['color.brand'].$value,
+    'Une mise à jour du seed ne réinitialise jamais un état existant',
+  );
+});
+
+test('copie précédente falsifiée : restauration refusée sans toucher l’original', async (t) => {
+  const { store, dir } = await fixture(t);
+  const { restorePrevious } = await import('../app/server/store.js');
+  const original = await readFile(store.file, 'utf8');
+  await writeFile(path.join(dir, 'state.previous.json'), '{invalid');
+  await assert.rejects(() => restorePrevious(dir));
+  assert.equal(await readFile(store.file, 'utf8'), original);
+});
+
+test('échec de sauvegarde : commit non appliqué et brouillon encore validable', async (t) => {
+  const { store, dir } = await fixture(t);
+  const original = await readFile(store.file, 'utf8');
+  const backup = path.join(dir, 'state.previous.json');
+  await mkdir(backup);
+  const p = store.propose(0, [{ key: 'space.md', value: 24 }]);
+  await assert.rejects(() => store.commit(p.id));
+  assert.equal(store.snapshot().revision, 0);
+  assert.equal(await readFile(store.file, 'utf8'), original);
+  await rm(backup, { recursive: true });
+  await store.commit(p.id);
+  assert.equal(store.snapshot().revision, 1);
+});
+
+test(
+  'lien ajouté après ouverture : commit refusé sans lire ni modifier sa cible',
+  {
+    skip:
+      process.platform === 'win32'
+        ? 'Droits symlink non accordés sur Windows'
+        : false,
+  },
+  async (t) => {
+    const { store, dir } = await fixture(t);
+    const target = path.join(dir, 'outside.json');
+    const original = await readFile(store.file, 'utf8');
+    await writeFile(target, original);
+    await rm(store.file);
+    await symlink(target, store.file);
+    const p = store.propose(0, [{ key: 'space.md', value: 24 }]);
+    await assert.rejects(() => store.commit(p.id));
+    assert.equal(await readFile(target, 'utf8'), original);
+  },
+);

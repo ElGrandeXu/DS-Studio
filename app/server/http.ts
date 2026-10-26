@@ -5,6 +5,8 @@ import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { proposeSchema } from '../shared/model.js';
 import { Store, StudioError } from './store.js';
+import { ProjectStore } from './project.js';
+import { projectSchema } from '../shared/project.js';
 import { CodexAdapter } from '../../connectors/agents/codex.js';
 import { unvalidatedAdapter } from '../../connectors/agents/unvalidated.js';
 import type { AgentAdapter } from '../../connectors/agents/types.js';
@@ -24,6 +26,7 @@ export async function createStudioServer(options: {
     claude: unvalidatedAdapter('claude'),
     gemini: unvalidatedAdapter('gemini'),
   };
+  const project = new ProjectStore(store.directory);
   const csrf = randomBytes(32).toString('hex');
   let busy = false;
   const active = new Set<AbortController>();
@@ -90,13 +93,20 @@ export async function createStudioServer(options: {
             return send(200, {
               csrf,
               figma: figmaStatus,
-              agents: await Promise.all(
+              agents: [],
+            });
+          if (url.pathname === '/api/agents')
+            return send(
+              200,
+              await Promise.all(
                 Object.values(adapters).map(async (a) => ({
                   id: a.id,
                   ...(await a.status()),
                 })),
               ),
-            });
+            );
+          if (url.pathname === '/api/project')
+            return send(200, await project.read());
           if (url.pathname === '/api/state') return send(200, store.snapshot());
           if (url.pathname === '/api/export')
             return send(200, store.snapshot().tokens);
@@ -125,6 +135,13 @@ export async function createStudioServer(options: {
           body = JSON.parse(raw);
         } catch {
           throw new StudioError('JSON invalide.');
+        }
+        if (url.pathname === '/api/project') {
+          const b = z
+            .object({ base: z.string().max(64), project: projectSchema })
+            .strict()
+            .parse(body);
+          return send(200, await project.save(b.base, b.project));
         }
         if (url.pathname === '/api/proposals') {
           const b = proposeSchema.parse(body);
@@ -199,7 +216,10 @@ export async function createStudioServer(options: {
               b.message,
               {
                 tokens: store.snapshot().tokens,
-                brief: await context('PFE.md'),
+                brief:
+                  (await context('PFE.md')) +
+                  '\nBrief privé DS-Studio :\n' +
+                  JSON.stringify((await project.read()).project),
                 rules: await context('DESIGN_RULES.md'),
                 history: b.history,
               },
@@ -277,6 +297,8 @@ export async function createStudioServer(options: {
       return send(500, { error: urlSafeMessage(error) });
     }
   });
+  server.requestTimeout = 15000;
+  server.headersTimeout = 10000;
   return {
     server,
     close: async () => {

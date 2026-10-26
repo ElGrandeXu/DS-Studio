@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Catalogue, Scenario } from './DesignSystem.js';
+import ProjectBrief from './ProjectBrief.js';
+import { useTokenDraft } from './useTokenDraft.js';
 import {
   bootstrap,
   commit,
@@ -27,19 +29,26 @@ function useDesignState() {
   const [error, setError] = useState('');
   useEffect(() => {
     let live = true;
-    const refresh = () =>
-      getState()
-        .then((s) => {
-          if (live) {
-            setState(s);
-            setError('');
-          }
-        })
-        .catch((e) => {
-          if (live) setError(e.message);
-        });
+    let inFlight = false;
+    const refresh = async () => {
+      if (inFlight || !live) return;
+      inFlight = true;
+      try {
+        const s = await getState();
+        if (live) {
+          setState((current) =>
+            !current || s.revision >= current.revision ? s : current,
+          );
+          setError('');
+        }
+      } catch (e) {
+        if (live) setError((e as Error).message);
+      } finally {
+        inFlight = false;
+      }
+    };
     void refresh();
-    const timer = setInterval(refresh, 1200);
+    const timer = setInterval(() => void refresh(), 1200);
     const channel = new BroadcastChannel('ds-studio');
     channel.onmessage = refresh;
     return () => {
@@ -68,8 +77,23 @@ export function Preview() {
 export default function App() {
   const { state, setState, error: stateError } = useDesignState();
   const [boot, setBoot] = useState<Bootstrap>();
-  const [key, setKey] = useState<TokenKey>('color.brand');
-  const [draft, setDraft] = useState('');
+  const [key, setKey] = useState<TokenKey>(() => {
+    try {
+      const saved = JSON.parse(
+        sessionStorage.getItem('ds-studio-token-draft-v2') || 'null',
+      );
+      if (tokenKeys.includes(saved?.key)) return saved.key;
+    } catch {
+      /* Facultatif. */
+    }
+    return 'color.brand';
+  });
+  const { draft, setDraft, recovered, discard } = useTokenDraft(
+    key,
+    state?.tokens[key].$value,
+  );
+  const [search, setSearch] = useState('');
+  const [agents, setAgents] = useState<Bootstrap['agents']>([]);
   const [proposal, setProposal] = useState<Proposal>();
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -92,8 +116,14 @@ export default function App() {
       .catch((e) => setError(e.message));
     return () => controller.current?.abort();
   }, []);
+  useEffect(() => {
+    if (agent !== 'manual')
+      request<Bootstrap['agents']>('agents')
+        .then(setAgents)
+        .catch((e) => setError(e.message));
+  }, [agent]);
   const current = state?.tokens[key].$value;
-  useEffect(() => setDraft(String(current ?? '')), [key, current]);
+
   useEffect(() => {
     if (proposal) {
       dialog.current?.showModal();
@@ -130,6 +160,11 @@ export default function App() {
     setSaving(true);
     await perform(async () => {
       const next = await commit(proposal);
+      try {
+        sessionStorage.removeItem('ds-studio-token-draft-v2');
+      } catch {
+        /* Facultatif. */
+      }
       setState(next);
       setProposal(undefined);
       announceChange();
@@ -177,9 +212,16 @@ export default function App() {
         <p>Lancez le serveur local puis rechargez cette page.</p>
       </main>
     );
-  const selectedAgent = boot?.agents.find((a) => a.id === agent);
+  const selectedAgent = agents.find((a) => a.id === agent);
+  const staleProposal = !!proposal && proposal.revision !== state.revision;
+  const matchingKeys = tokenKeys.filter((k) =>
+    k.toLowerCase().includes(search.trim().toLowerCase()),
+  );
   return (
     <>
+      <a className="skip-link" href="#ds-title">
+        Aller aux tokens
+      </a>
       <header className="studio-header">
         <div className="wordmark">
           <span className="brand-symbol">ds.</span>
@@ -189,7 +231,7 @@ export default function App() {
           </div>
         </div>
         <div className="header-status">
-          <span className="local-badge">● Local · V1</span>
+          <span className="local-badge">● Local · V2</span>
           <span className="muted">
             {boot?.figma.label ?? 'Figma non connecté'}
           </span>
@@ -287,16 +329,24 @@ export default function App() {
           </ol>
         </section>
       )}
+      <nav className="panel-nav" aria-label="Panneaux de l’atelier">
+        <a href="#agent-title">1 · Contexte et assistant</a>
+        <a href="#ds-title">2 · Tokens et composants</a>
+        <a href="#mobile-title">3 · Aperçu responsive</a>
+      </nav>
       <main className="studio-grid">
         <section className="panel agent-panel" aria-labelledby="agent-title">
           <div className="panel-heading">
             <span className="panel-index">A</span>
             <div>
-              <h2 id="agent-title">Agent</h2>
+              <h2 id="agent-title" tabIndex={-1}>
+                Contexte et assistant
+              </h2>
               <p>Un assistant, pas un pilote automatique</p>
             </div>
           </div>
           <div className="panel-body">
+            <ProjectBrief />
             <label className="field">
               Mode de travail
               <select value={agent} onChange={(e) => setAgent(e.target.value)}>
@@ -335,9 +385,9 @@ export default function App() {
                   {selectedAgent?.detail ?? 'Détection du CLI…'}
                 </p>
                 <p className="privacy-note">
-                  Envoi à Codex : tokens, workspace/PFE.md, DESIGN_RULES.md et
-                  10 messages récents. Aucun outil ni commande ; propositions
-                  seulement.
+                  Envoi à Codex : tokens, workspace/PFE.md, brief privé,
+                  DESIGN_RULES.md et 10 messages récents. Aucun outil ni
+                  commande ; propositions seulement.
                 </p>
                 <div
                   className="chat-log"
@@ -395,7 +445,9 @@ export default function App() {
           <div className="panel-heading">
             <span className="panel-index">B</span>
             <div>
-              <h2 id="ds-title">Design System</h2>
+              <h2 id="ds-title" tabIndex={-1}>
+                Design System
+              </h2>
               <p>Lisière · exemple fictif, sources locales</p>
             </div>
             <span className="revision-tag">r{state.revision}</span>
@@ -405,8 +457,21 @@ export default function App() {
               <h3>Tokens sémantiques</h3>
               <span>{tokenKeys.length} tokens</span>
             </div>
+            <label className="field token-search">
+              Rechercher un token
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="color, space, font…"
+              />
+            </label>
+            <p className="token-hint" role="status">
+              {matchingKeys.length} résultat(s).{' '}
+              {search && 'La sélection courante reste accessible.'}
+            </p>
             <div className="swatches">
-              {tokenKeys
+              {matchingKeys
                 .filter((k) => k.startsWith('color.'))
                 .map((k) => (
                   <button
@@ -434,7 +499,7 @@ export default function App() {
                   value={key}
                   onChange={(e) => setKey(e.target.value as TokenKey)}
                 >
-                  {tokenKeys.map((k) => (
+                  {[...new Set([key, ...matchingKeys])].map((k) => (
                     <option key={k}>{k}</option>
                   ))}
                 </select>
@@ -456,6 +521,22 @@ export default function App() {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     required
+                    type={
+                      state.tokens[key].$type === 'dimension'
+                        ? 'number'
+                        : 'text'
+                    }
+                    min={
+                      state.tokens[key].$type === 'dimension' ? 0 : undefined
+                    }
+                    max={
+                      state.tokens[key].$type === 'dimension' ? 128 : undefined
+                    }
+                    step={
+                      state.tokens[key].$type === 'dimension'
+                        ? 'any'
+                        : undefined
+                    }
                     maxLength={20}
                   />
                 )}
@@ -467,6 +548,30 @@ export default function App() {
                 Proposer
               </button>
             </form>
+            {state.tokens[key].$type === 'color' && (
+              <label className="color-picker">
+                Choisir visuellement
+                <input
+                  aria-label="Sélecteur de couleur"
+                  type="color"
+                  value={
+                    /^#[0-9a-fA-F]{6}$/.test(draft) ? draft : String(current)
+                  }
+                  onChange={(e) => setDraft(e.target.value)}
+                />
+              </label>
+            )}
+            {draft !== String(current) && (
+              <p className="draft-status" role="status">
+                {recovered
+                  ? 'Brouillon récupéré dans cet onglet.'
+                  : 'Brouillon non enregistré.'}{' '}
+                Rien n’est appliqué.
+                <button type="button" onClick={discard}>
+                  Abandonner le brouillon
+                </button>
+              </p>
+            )}
             <p className="token-hint">
               {state.tokens[key].$type === 'color'
                 ? '#RRGGBB · '
@@ -475,7 +580,7 @@ export default function App() {
                   : ''}
               Rien n’est écrit avant validation.
             </p>
-            <p className="contrast">
+            <p className="contrast" aria-live="polite">
               Marque / texte sur marque :{' '}
               <strong>
                 {contrast(
@@ -499,7 +604,9 @@ export default function App() {
           <div className="panel-heading">
             <span className="panel-index">C</span>
             <div>
-              <h2 id="mobile-title">Mobile Viewer</h2>
+              <h2 id="mobile-title" tabIndex={-1}>
+                Aperçu responsive
+              </h2>
               <p>De vrais composants, à largeur réelle</p>
             </div>
           </div>
@@ -543,7 +650,7 @@ export default function App() {
         </section>
       </main>
       <footer className="studio-footer">
-        <span>DS-Studio V1 · Fait pour être transformé.</span>
+        <span>DS-Studio V2 · Fait pour être transformé.</span>
         <span>JSON local → validation → composants partagés</span>
       </footer>
       <dialog
@@ -560,6 +667,12 @@ export default function App() {
           {proposal?.revision}. Ces valeurs seront enregistrées sur votre
           machine.
         </p>
+        {staleProposal && (
+          <p role="alert" className="error">
+            Une autre validation a modifié le DS. Fermez ce diff et refaites
+            votre proposition ; aucun écrasement n’est permis.
+          </p>
+        )}
         <div className="diff-scroll">
           <table>
             <thead>
@@ -600,7 +713,7 @@ export default function App() {
           <button
             className="studio-primary"
             onClick={() => void accept()}
-            disabled={saving}
+            disabled={saving || staleProposal}
           >
             {saving ? 'Enregistrement…' : 'Valider et enregistrer'}
           </button>

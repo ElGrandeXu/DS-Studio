@@ -132,11 +132,12 @@ async function serve() {
   let serverChild;
   let operation;
   let observedServer = null;
+  let generation = 0;
 
   async function serverRecord() {
     const record = await readRecord(directory, 'server');
     if (!record) return null;
-    if (typeof record === 'number' && !alive(record)) return null;
+    if (!alive(typeof record === 'number' ? record : record.pid)) return null;
     if (record.root !== root || record.directory !== directory)
       throw new Error(
         'Verrou existant non identifiable (ancienne version ou autre projet). Aucun processus arrêté. Voir le guide de lancement.',
@@ -147,6 +148,28 @@ async function serve() {
         'Le PID enregistré ne répond pas comme DS-Studio. Aucun arrêt forcé. Réessayez ou consultez le guide.',
       );
     return null;
+  }
+  async function serverLog() {
+    try {
+      const file = path.join(directory, 'server-output.txt');
+      const stat = await fs.lstat(file);
+      if (!stat.isFile() || stat.isSymbolicLink()) return '';
+      const handle = await fs.open(file, 'r');
+      try {
+        const buffer = Buffer.alloc(Math.min(10000, stat.size));
+        const { bytesRead } = await handle.read(
+          buffer,
+          0,
+          buffer.length,
+          Math.max(0, stat.size - buffer.length),
+        );
+        return buffer.subarray(0, bytesRead).toString('utf8');
+      } finally {
+        await handle.close();
+      }
+    } catch {
+      return '';
+    }
   }
   async function requirements() {
     const dependencies =
@@ -188,8 +211,10 @@ async function serve() {
   async function status() {
     let record = observedServer;
     if (!busy) {
+      const observedGeneration = generation;
       try {
         record = await serverRecord();
+        if (busy || observedGeneration !== generation) return status();
         observedServer = record;
         if (record) {
           if (!error) phase = 'actif';
@@ -199,6 +224,7 @@ async function serve() {
             'DS-Studio s’est arrêté de façon inattendue. Cliquez sur Démarrer.';
         }
       } catch (e) {
+        if (busy || observedGeneration !== generation) return status();
         observedServer = record = null;
         phase = 'erreur';
         error = e.message;
@@ -211,7 +237,8 @@ async function serve() {
       ...(await requirements()),
       url: record ? `http://127.0.0.1:${record.port}` : null,
       pid: record?.pid ?? null,
-      output,
+      output: output || (await serverLog()),
+      backup: existsSync(path.join(directory, 'state.previous.json')),
     };
   }
   async function stopServer() {
@@ -250,29 +277,38 @@ async function serve() {
       throw new Error('PORT doit être compris entre 1024 et 65535.');
     phase = 'démarrage';
     output = '';
-    serverChild = spawn(
-      process.execPath,
-      ['--import', 'tsx', path.join(root, 'app/server/index.ts')],
-      {
-        cwd: root,
-        env: { ...env, PORT: String(port), DS_STUDIO_DATA_DIR: directory },
-        stdio: ['ignore', 'pipe', 'pipe'],
-        windowsHide: true,
-      },
-    );
-    let failure;
-    serverChild.on('error', (e) => {
-      failure = e;
+    const logFile = path.join(directory, 'server-output.txt');
+    const stat = await fs.lstat(logFile).catch((e) => {
+      if (e.code !== 'ENOENT') throw e;
+      return null;
     });
-    const capture = (chunk) => {
-      output = (output + chunk.toString()).slice(-10000);
-    };
-    serverChild.stdout.on('data', capture);
-    serverChild.stderr.on('data', capture);
+    if (stat && (!stat.isFile() || stat.isSymbolicLink()))
+      throw new Error('Journal serveur non sûr : fichier préservé.');
+    const log = await fs.open(logFile, 'w', 0o600);
+    let failure;
+    try {
+      serverChild = spawn(
+        process.execPath,
+        ['--import', 'tsx', path.join(root, 'app/server/index.ts')],
+        {
+          cwd: root,
+          env: { ...env, PORT: String(port), DS_STUDIO_DATA_DIR: directory },
+          detached: true,
+          stdio: ['ignore', log.fd, log.fd],
+          windowsHide: true,
+        },
+      );
+      serverChild.on('error', (e) => {
+        failure = e;
+      });
+      serverChild.unref();
+    } finally {
+      await log.close();
+    }
     for (let i = 0; i < 200; i++) {
       if (failure || serverChild.exitCode !== null)
         throw new Error(
-          output.trim() || failure?.message || 'Échec du serveur.',
+          (await serverLog()).trim() || failure?.message || 'Échec du serveur.',
         );
       try {
         const live = await readRecord(directory, 'server');
@@ -363,6 +399,50 @@ async function serve() {
         await preparation.release();
       }
       phase = 'arrêté';
+    } else if (name === 'restore') {
+      if (body.confirm !== true)
+        throw new Error('Confirmation requise avant restauration.');
+      if (await serverRecord())
+        throw new Error('Arrêtez DS-Studio avant de restaurer.');
+      const recovery = await acquireLease(directory, 'server', {
+        root,
+        directory,
+        preparing: true,
+      });
+      try {
+        output = '';
+        await new Promise((resolve, reject) => {
+          const child = spawn(
+            process.execPath,
+            [
+              '--import',
+              'tsx',
+              path.join(root, 'scripts/recover-state.ts'),
+              directory,
+            ],
+            {
+              cwd: root,
+              env,
+              windowsHide: true,
+              stdio: ['ignore', 'pipe', 'pipe'],
+            },
+          );
+          const capture = (chunk) => {
+            output = (output + chunk.toString()).slice(-10000);
+          };
+          child.stdout.on('data', capture);
+          child.stderr.on('data', capture);
+          child.once('error', reject);
+          child.once('exit', (code) =>
+            code === 0
+              ? resolve()
+              : reject(new Error(output.trim() || 'Restauration impossible.')),
+          );
+        });
+        phase = 'arrêté';
+      } finally {
+        await recovery.release();
+      }
     } else if (name === 'start') {
       await startServer();
       if (body.open === true) {
@@ -437,9 +517,10 @@ async function serve() {
         });
       if (req.method === 'GET' && req.url === '/api/status')
         return send(200, await status());
-      const name = /^\/api\/(start|stop|restart|open|prepare|quit)$/.exec(
-        req.url || '',
-      )?.[1];
+      const name =
+        /^\/api\/(start|stop|restart|open|prepare|restore|quit)$/.exec(
+          req.url || '',
+        )?.[1];
       if (req.method !== 'POST' || !name)
         return send(404, { error: 'Route inconnue.' });
       if (!req.headers['content-type']?.startsWith('application/json'))
@@ -458,6 +539,7 @@ async function serve() {
       if (busy)
         return send(409, { error: 'Une opération est en cours. Patientez.' });
       busy = true;
+      generation++;
       if (['start', 'restart', 'prepare'].includes(name)) phase = 'démarrage';
       operation = action(name, body)
         .catch((e) => {

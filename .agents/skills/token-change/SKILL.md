@@ -6,7 +6,7 @@ description: Préparer et vérifier une modification de token dans DS-Studio ave
 # Changer un token
 
 Lire `workspace/DESIGN_RULES.md` et `app/shared/model.ts` : seuls les noms et types
-qui y sont déclarés sont acceptés en V1. Le seed versionné est
+qui y sont déclarés sont acceptés en V2. Le seed versionné est
 `workspace/design-system.tokens.json`, mais l’état courant de l’application est
 `.ds-studio/state.json`. Ne jamais éditer ce journal à la main.
 

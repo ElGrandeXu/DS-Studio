@@ -1,4 +1,4 @@
-# DS-Studio V1
+# DS-Studio V2
 
 Un atelier **web local** pour explorer, modifier et faire évoluer un Design System.
 Ce starter pédagogique est conçu pour devenir **votre outil**, pas pour dicter vos
@@ -67,6 +67,21 @@ perdu les permissions exécutables : `sh start.sh` ou `sh start.command`.
 `npm run doctor` vérifie les prérequis sans ouvrir d’identifiants. Un dossier
 contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de service.
 
+## Ce qui change en V2
+
+- **Mon PFE** : brief privé éditable et exportable en Markdown ; aucun compte nécessaire.
+- Recherche de tokens, sélecteur de couleur, valeurs numériques bornées et brouillon
+  récupérable dans le même onglet après recharge. Rien n’est appliqué avant le diff.
+- Conflits multi-onglets signalés dans le diff ; session locale renouvelée après
+  redémarrage. Les erreurs réseau ne relancent jamais une écriture ambiguë.
+- Copie de la révision précédente avant chaque validation ; restauration guidée
+  depuis le lanceur, avec archivage de l’original. Aucun reset silencieux.
+- Serveur indépendant du panneau, contrôles de fichiers renforcés, tests de crash
+  et qualification automatisée sur les trois OS. Les lanceurs natifs restent à
+  qualifier sur les postes réels (voir [rapport](DELIVERY_REPORT.md)).
+
+[Changelog V1/V2](docs/V2_CHANGELOG.md) · [Audit et priorités](docs/V2_AUDIT.md)
+
 ## Votre première boucle, en deux minutes
 
 1. Dans **Design System**, choisissez `color.brand`, remplacez la valeur par `#8A3B20`.
@@ -88,8 +103,16 @@ simulé. Les propositions périmées et annulations conflictuelles sont refusée
 | `workspace/DESIGN_RULES.md`           | Vos règles de conception et contraintes                    |
 | `workspace/DECISIONS.md`              | Vos arbitrages et preuves                                  |
 | `workspace/design-system.tokens.json` | Seed versionné, utilisé uniquement à la création d’un état |
+| `.ds-studio/project.json`             | Brief PFE privé du panneau, ignoré par Git                 |
+| `.ds-studio/state.previous.json`      | Copie de la révision précédente des tokens et du journal   |
 | `.ds-studio/state.json`               | Tokens courants et historique personnel, ignorés par Git   |
 | `workspace/private/`                  | Vos données privées ignorées, à sauvegarder hors Git       |
+
+Après un incident : arrêtez l’atelier, ouvrez **Journal et réparation** dans le
+lanceur puis **Restaurer la copie précédente…**. Une confirmation indique l’effet ;
+l’original est conservé sous `state-preserved-….json`. Le brief ne change pas.
+Après restauration, rechargez les onglets de l’atelier. Sans copie valide, aucune
+restauration automatique n’est tentée. Sauvegardez aussi `.ds-studio/` hors du projet.
 
 Ne modifiez pas le journal `state.json` à la main. **Exporter les tokens** télécharge
 le JSON courant ; **Importer un JSON** prépare un diff qui demande validation.
@@ -120,7 +143,7 @@ créer un skill : ajoutez `.agents/skills/nom-du-skill/SKILL.md`, avec un frontm
 `name` et `description`, puis une procédure courte, ses contraintes et ses preuves.
 Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conversations.
 
-## État réel de V1
+## État réel de V2
 
 | Fonction                                                            | État et portée                                                                                     |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -131,7 +154,7 @@ Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conve
 | Claude Code / Gemini dans l’application                             | **NOT IMPLEMENTED**, adaptateurs indisponibles et contrat documenté                                |
 | Figma MCP et synchronisation                                        | **NOT IMPLEMENTED**, statut non connecté, contrat et procédure future documentés                   |
 | Skills et harness personnalisable                                   | **IMPLEMENTED**, structure et liens vérifiés ; pas une validation des choix d’un étudiant          |
-| Windows / macOS                                                     | **PARTIAL**, conception portable, aucune exécution sur ces OS                                      |
+| Qualification automatisée Windows / macOS                           | **PARTIAL**, résultats exacts de CI et limites natives dans DELIVERY_REPORT.md                     |
 | Application desktop installable                                     | **NOT IMPLEMENTED**, application web locale uniquement                                             |
 
 Preuves précises et réserves : [DELIVERY_REPORT.md](DELIVERY_REPORT.md).
@@ -146,7 +169,7 @@ compatible, une connexion et du quota sont requis. Aucun compte enseignant n’e
 
 Choisir Codex puis **Envoyer** transmet les tokens, `PFE.md`, `DESIGN_RULES.md`, la demande
 et au plus dix messages précédents. Ne mettez pas de données sensibles dans ce contexte.
-Le chat ne persiste pas après recharge. Codex ne peut pas exécuter vos commandes dans
+Le brief privé est également transmis. Le chat ne persiste pas après recharge. Codex ne peut pas exécuter vos commandes dans
 ce profil : le contrôleur valide les propositions de tokens, l’utilisateur accepte le diff.
 Les MCP, plugins et outils shell sont désactivés, et le contexte est transmis en JSON
 depuis un dossier temporaire vide. L’authentification reste gérée par le CLI officiel.

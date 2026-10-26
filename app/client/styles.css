@@ -839,3 +839,87 @@ del {
     scroll-behavior: auto !important;
   }
 }
+
+/* V2 : parcours clavier et contexte privé, indépendants du style du DS. */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 5;
+  padding: 12px;
+  background: white;
+  color: #243c78;
+}
+.skip-link:focus {
+  top: 12px;
+}
+.panel-nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 28px 18px;
+}
+.panel-nav a {
+  color: #294882;
+  padding: 8px 12px;
+  border-radius: 7px;
+  background: #e9eef9;
+  text-decoration: none;
+}
+.project-brief {
+  border: 1px solid #dbe0e8;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 18px;
+}
+.project-brief summary {
+  cursor: pointer;
+  font-weight: 650;
+  color: #294882;
+}
+.project-brief p {
+  font-size: 12px;
+  margin: 12px 0;
+}
+.project-brief form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.token-search {
+  margin-top: 16px;
+}
+.color-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.color-picker input {
+  padding: 2px;
+  height: 38px;
+  width: 64px;
+  cursor: pointer;
+}
+.draft-status {
+  color: #704a13;
+  background: #fff6df;
+  padding: 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  margin: 12px 0 0;
+}
+.draft-status button {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
+h2[id] {
+  scroll-margin-top: 16px;
+}
+@media (max-width: 740px) {
+  .panel-nav {
+    margin: 0 14px 18px;
+  }
+}

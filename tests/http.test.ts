@@ -187,3 +187,54 @@ test('mode dev : frontend servi, workspace et backend non distribués', async (t
   ])
     assert.equal((await fetch(origin + route)).status, 403);
 });
+
+test('brief : API fermée, révision conflictuelle et aucun fichier privé servi', async (t) => {
+  const { origin, post, store } = await fixture(t);
+  const initial = await (await fetch(origin + '/api/project')).json();
+  const body = {
+    ...initial,
+    project: { ...initial.project, name: 'PFE test' },
+  };
+  assert.equal(
+    (await post('project', body, { 'X-DS-Studio': '' })).status,
+    403,
+  );
+  assert.equal((await post('project', body)).status, 200);
+  assert.equal((await post('project', body)).status, 409);
+  assert.equal(
+    (await post('project', { ...body, path: '../../escape' })).status,
+    400,
+  );
+  assert.equal((await fetch(origin + '/.ds-studio/project.json')).status, 404);
+  assert.equal(store.snapshot().revision, 0);
+});
+
+test('mode manuel disponible immédiatement même si la détection IA ne répond jamais', async (t) => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'ds-no-agent-'));
+  const store = new Store(directory, seed);
+  await store.init();
+  const app = await createStudioServer({
+    root,
+    store,
+    agent: {
+      id: 'codex',
+      async status() {
+        return new Promise(() => {});
+      },
+      async reply() {
+        throw new Error('Non disponible');
+      },
+    },
+  });
+  await new Promise<void>((r) => app.server.listen(0, '127.0.0.1', r));
+  t.after(async () => {
+    await app.close();
+    await rm(directory, { recursive: true, force: true });
+  });
+  const origin = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`;
+  const response = await fetch(origin + '/api/bootstrap', {
+    signal: AbortSignal.timeout(2000),
+  });
+  assert.equal(response.status, 200);
+  assert.equal(typeof (await response.json()).csrf, 'string');
+});

@@ -1,9 +1,9 @@
 {
   "name": "ds-studio",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Starter p\u00e9dagogique local pour explorer et faire \u00e9voluer un Design System.",
+  "description": "Starter pédagogique local pour explorer et faire évoluer un Design System.",
   "engines": {
     "node": ">=22.12.0"
   },

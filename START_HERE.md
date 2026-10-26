@@ -28,3 +28,16 @@ Pour travailler : proposez un changement borné, implémentez-le avec l’accord
 donné par l’étudiant, testez le parcours concerné et consignez la décision utile.
 Ne publiez, poussez ou déployez rien sans demande explicite. Lisez
 [STUDENT_GUIDE](docs/STUDENT_GUIDE.md) pour les pistes d’appropriation.
+
+## Entrées V2
+
+Commencez par la boucle manuelle du README. `docs/V2_AUDIT.md` sépare les défauts
+observés des hypothèses ; `docs/V2_CHANGELOG.md` et `DELIVERY_REPORT.md` donnent
+les preuves réelles. Le brief du panneau est privé dans `.ds-studio/project.json` :
+ne le lisez que si l’étudiant demande d’utiliser son contexte, ne le publiez pas.
+Il peut exporter un Markdown puis choisir ce qu’il reprend dans `workspace/PFE.md`.
+
+Le schéma de tokens reste version 1 : aucune migration destructive. Les clés
+nouvelles exigent une vraie migration, pas la suppression du journal. La copie
+précédente ne remplace pas une sauvegarde externe. Pour une réparation, lire
+`.agents/skills/safe-recovery/SKILL.md` et préserver le fichier original.
