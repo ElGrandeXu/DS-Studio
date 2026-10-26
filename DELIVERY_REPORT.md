@@ -32,15 +32,15 @@ Linux, Node **22.23.4**, npm fourni avec cette distribution, Chromium Playwright
 Les tests emploient des données fictives dans des dossiers temporaires, jamais
 l’état personnel du projet.
 
-| Contrôle                          | Résultat obtenu avant qualification distante                                   |
-| --------------------------------- | ------------------------------------------------------------------------------ |
-| `npm run check` / `npm run build` | Réussis                                                                        |
-| `npm test`                        | 210 tests réussis, dont crash en écriture, concurrence, brief et sécurité HTTP |
-| `npm run test:e2e`                | 10 tests réussis ; parcours V1 conservés et nouveaux parcours V2               |
-| `npm run test:launcher`           | 22 tests réussis, dont 19 sous-tests de cycle réel                             |
-| `npm run qualify`                 | Réussi : vrai processus, verrou, persistance et annulation                     |
-| `npm audit --json`                | 0 vulnérabilité signalée à la date du contrôle                                 |
-| `npm run scan`                    | Contrôle requis avant chaque publication ; résultat final indiqué ci-dessous   |
+| Contrôle                          | Résultat obtenu avant qualification distante                                    |
+| --------------------------------- | ------------------------------------------------------------------------------- |
+| `npm run check` / `npm run build` | Réussis                                                                         |
+| `npm test`                        | 29 tests réussis, dont crash en écriture, concurrence, brief et sécurité HTTP   |
+| `npm run test:e2e`                | 10 tests réussis ; parcours V1 conservés et nouveaux parcours V2                |
+| `npm run test:launcher`           | 22 tests réussis, dont 19 sous-tests de cycle réel                              |
+| `npm run qualify`                 | Réussi : vrai processus, verrou, persistance et annulation                      |
+| `npm audit --json`                | 0 vulnérabilité signalée à la date du contrôle                                  |
+| `npm run scan`                    | 89 fichiers publiables contrôlés, 0 alerte ; index et arbre de travail vérifiés |
 
 La revue contradictoire a recherché : perte de données après mise à jour, liens
 ajoutés après init, sauvegarde impossible, copies invalides, révisions concurrentes,
@@ -64,10 +64,33 @@ sous Linux/macOS. Aucun test désactivé pour rendre cette qualification verte.
 
 ## Qualification distante et publication
 
-**Qualification de la branche en cours ; main et tag v2.0.0 non modifiés à ce stade.**
-Cette section est complétée seulement après observation des résultats GitHub.
-Aucune CI en échec, divergence distante ou alerte de secret non résolue ne doit
-être contournée pour publier. Le tag final ne doit pointer que sur le commit validé.
+Code final qualifié : `21a3b10`, run
+[40420840720](https://github.com/ElGrandeXu/DS-Studio/actions/runs/40420840720) :
+**Ubuntu, macOS et Windows entièrement réussis**, y compris préparation npm,
+compilation, tests, navigateur, lanceur, qualification processus et scan.
+
+| Runner  | Unitaires/API                                                  | Navigateur | Lanceurs                              | Qualification et scan |
+| ------- | -------------------------------------------------------------- | ---------- | ------------------------------------- | --------------------- |
+| Ubuntu  | 29 réussis                                                     | 10 réussis | 22 réussis                            | Réussis               |
+| macOS   | 29 réussis                                                     | 10 réussis | 20 réussis, 2 contrôles Linux ignorés | Réussis               |
+| Windows | 27 réussis, 2 contrôles symlinks ignorés (droits non garantis) | 10 réussis | 20 réussis, 2 contrôles Linux ignorés | Réussis               |
+
+Compléments locaux : `start.command` → `start.sh` réellement exécutés sous Linux,
+cwd extérieur, Node absent du PATH, serveur disponible, arrêt gracieux et verrou
+libéré. Métadonnées plist Mac relues et version 2.0.0 contrôlée ; ce n’est pas un
+essai Finder. Tous les liens Markdown locaux de la documentation ont été vérifiés.
+
+La dernière modification est documentaire : ce rapport, README et tableaux de
+qualification. La CI complète est relancée sur ce commit avant toute intégration.
+La publication utilise exclusivement une avance rapide depuis `codex/v2`, jamais
+un reset ou un force-push ; `v2.0.0` désigne le commit final validé. Les SHA et runs
+de publication définitifs figurent dans les
+[notes de release](https://github.com/ElGrandeXu/DS-Studio/releases/tag/v2.0.0).
+Les tags `v1.0.0-starter` et `v1.1.0-launchers` restent inchangés.
+
+Aucune alerte de secret ou divergence distante ne doit être contournée pour
+publier. Le rapport décrit des tests exécutés ; le tag et les checks GitHub sont
+la référence vérifiable de publication, pas une promesse de succès futur.
 
 ## Limites à transmettre aux 19 étudiants
 

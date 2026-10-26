@@ -41,8 +41,8 @@ Figma ou abonnement IA n’est nécessaire pour démarrer.
 
 Le panneau utilise votre navigateur, pas Electron. Aucun runtime supplémentaire
 obligatoire. [Guide graphique hors ligne](launcher/INSTALLATION.html) et
-[dépannage détaillé](docs/LAUNCHER.md). Les lanceurs Finder et Windows sont
-**implémentés mais non testés sur ces OS** : application Mac non signée,
+[dépannage détaillé](docs/LAUNCHER.md). Le contrôleur est **testé en CI sur les trois OS**. Les entrées Finder et Windows
+Script Host restent **à tester sur les postes réels** : application Mac non signée,
 Windows Script Host nécessaire au `.vbs`. Les protections de l’établissement
 peuvent bloquer ces fichiers ; ne les désactivez pas. Gardez les lanceurs dans
 le projet ; créez un raccourci système plutôt que de déplacer le fichier seul.
@@ -154,7 +154,7 @@ Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conve
 | Claude Code / Gemini dans l’application                             | **NOT IMPLEMENTED**, adaptateurs indisponibles et contrat documenté                                |
 | Figma MCP et synchronisation                                        | **NOT IMPLEMENTED**, statut non connecté, contrat et procédure future documentés                   |
 | Skills et harness personnalisable                                   | **IMPLEMENTED**, structure et liens vérifiés ; pas une validation des choix d’un étudiant          |
-| Qualification automatisée Windows / macOS                           | **PARTIAL**, résultats exacts de CI et limites natives dans DELIVERY_REPORT.md                     |
+| Qualification automatisée Windows / macOS                           | **TESTED en CI** pour API, navigateur et contrôleur ; **PARTIAL** pour Finder/WSH natifs           |
 | Application desktop installable                                     | **NOT IMPLEMENTED**, application web locale uniquement                                             |
 
 Preuves précises et réserves : [DELIVERY_REPORT.md](DELIVERY_REPORT.md).

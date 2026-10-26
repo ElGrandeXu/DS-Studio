@@ -62,6 +62,10 @@ l’arrêt HTTP privé réel, toujours avec contrôle de libération du verrou. 
 terminal ne transforme plus le Ctrl+C Windows en kill forcé du serveur enfant ;
 le geste de console natif reste à tester sur un poste Windows.
 
+La seconde CI V2, [40420840720](https://github.com/ElGrandeXu/DS-Studio/actions/runs/40420840720),
+a réussi intégralement sur Ubuntu, macOS et Windows. Aucun contrôle natif
+Finder/Windows Script Host n’en est déduit.
+
 Comptages, résultats CI et limites exactes : [rapport de livraison](../DELIVERY_REPORT.md).
 Un scénario simulé de capacité expirée est complété par un onglet réel conservé
 pendant un redémarrage processus dans la suite des lanceurs.

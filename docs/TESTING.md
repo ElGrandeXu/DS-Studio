@@ -116,3 +116,12 @@ Les résultats exacts et les échecs corrigés sont dans [DELIVERY_REPORT](../DE
 La CI conserve sept jours les traces/captures de données fictives. Les tests normaux
 ne contactent aucun fournisseur IA. `npm audit` complète le scan heuristique local ;
 il consulte le registre npm, sans ouvrir les fichiers d’authentification de la machine.
+
+## Matrice V2 qualifiée
+
+Run [40420840720](https://github.com/ElGrandeXu/DS-Studio/actions/runs/40420840720) :
+les trois jobs réussis, Node 22.23.4. Ubuntu : 29 unitaires/API, 10 navigateur,
+22 lanceurs. macOS : 29, 10, 20 (2 contrôles Linux ignorés). Windows : 27, 10,
+20 (2 contrôles symlink unitaires et 2 contrôles Linux lanceurs explicitement
+ignorés). `qualify` et `scan` réussis partout. La CI du dernier commit documentaire
+est aussi exigée avant publication ; ses liens définitifs sont dans la release.
