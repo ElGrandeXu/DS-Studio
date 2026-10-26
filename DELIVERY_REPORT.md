@@ -80,8 +80,9 @@ cwd extérieur, Node absent du PATH, serveur disponible, arrêt gracieux et verr
 libéré. Métadonnées plist Mac relues et version 2.0.0 contrôlée ; ce n’est pas un
 essai Finder. Tous les liens Markdown locaux de la documentation ont été vérifiés.
 
-La dernière modification est documentaire : ce rapport, README et tableaux de
-qualification. La CI complète est relancée sur ce commit avant toute intégration.
+La dernière passe harmonise la documentation, les tableaux et un libellé de
+version Codex, sans modifier le protocole. La CI complète est relancée sur le
+commit final avant toute intégration.
 La publication utilise exclusivement une avance rapide depuis `codex/v2`, jamais
 un reset ou un force-push ; `v2.0.0` désigne le commit final validé. Les SHA et runs
 de publication définitifs figurent dans les

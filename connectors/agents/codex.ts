@@ -147,7 +147,7 @@ export class CodexAdapter implements AgentAdapter {
       if (version !== `codex-cli ${supportedVersion}`)
         return {
           available: false,
-          detail: `Version non qualifiée (${version}). V1 attend ${supportedVersion}. Mode manuel disponible.`,
+          detail: `Version non qualifiée (${version}). DS-Studio attend ${supportedVersion}. Mode manuel disponible.`,
         };
       return {
         available: true,

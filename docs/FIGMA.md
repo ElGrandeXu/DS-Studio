@@ -1,6 +1,6 @@
 # Figma : source de vérité réelle, pas intégration simulée
 
-**V1 : NOT IMPLEMENTED / non connecté.** Aucune authentification, lecture ou écriture
+**V2 : NOT IMPLEMENTED / non connecté.** Aucune authentification, lecture ou écriture
 Figma n’a été réalisée. Aucun fichier explicitement autorisé n’a été fourni. Les
 outils Figma présents dans une session de développement ne sont pas distribués
 avec ce starter et ne constituent pas une connexion de l’application.
@@ -18,7 +18,7 @@ Codex ou recopier des cookies pour contourner cette restriction.
    vous contrôlez les droits. Ne pas confondre un export de composants avec leur
    comportement responsive dans du code.
 3. Convertir explicitement les tokens vers le [format local](TOKENS.md), puis importer
-   le fichier dans DS-Studio et accepter le diff. V1 ne fournit pas ce convertisseur.
+   le fichier dans DS-Studio et accepter le diff. V2 ne fournit pas ce convertisseur.
 4. Tester vos décisions localement. Exporter les tokens courants pour documenter un
    rapprochement manuel avec Figma. L’export ne modifie pas votre fichier Figma.
 

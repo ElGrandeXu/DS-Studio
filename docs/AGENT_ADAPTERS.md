@@ -8,10 +8,10 @@ Sortie : `{message, changes:[{key,value}]}` validée par Zod. L’adaptateur ne 
 pas de Store et ne peut pas accepter une proposition. Le contrôleur HTTP prépare
 le diff avec la révision de départ ; l’UI décide de sa validation humaine.
 
-Les conversations de fournisseurs ne sont pas reprises ni mélangées. Le chat V1
+Les conversations de fournisseurs ne sont pas reprises ni mélangées. Le chat embarqué
 est en mémoire dans le navigateur ; après recharge l’historique affiché est vide.
 Les refus, délais et interruptions n’entraînent aucun renvoi automatique ni commit.
-Pas d’orchestration parallèle de plusieurs agents V1 : architecture multi-fournisseurs,
+Pas d’orchestration parallèle de plusieurs agents dans la V2 : architecture multi-fournisseurs,
 un fournisseur intégré et qualifié, deux points d’extension indisponibles.
 
 ## Codex — TESTED sous Linux avec 0.164.0
@@ -31,7 +31,7 @@ La disponibilité initiale signifie seulement binaire/version détectés ; le co
 le réseau et le quota sont réellement sollicités à l’envoi. Délai maximum 120 s.
 
 Choix : `exec` plutôt qu’app-server réduit les RPC, sessions et approbations à
-maintenir pour cette V1 à propositions seules. Le flux manuel reste indépendant.
+maintenir pour ce profil à propositions seules. Le flux manuel reste indépendant.
 Le protocole et la version ont été exécutés, pas seulement décrits. Pour changer
 la version acceptée, refaire le smoke test, le test hostile, le refus sans auth,
 la proposition/validation via API et les essais sur chaque OS cible.
