@@ -29,6 +29,9 @@ flowchart LR
 | `app/server/store.ts`         | État, propositions bornées en mémoire, journal et conflits  |
 | `app/server/http.ts`          | Origine, session locale, validation HTTP et routage fermé   |
 | `app/server/index.ts`         | Configuration locale, verrou d’instance, cycle de vie       |
+| `scripts/runtime.mjs`         | Identité privée, verrou récupérable et arrêt authentifié    |
+| `scripts/launcher.mjs`        | Panneau local sans dépendance, préparation npm confirmée    |
+| `launcher/` et entrées OS     | Interface légère, découverte Node et guide hors ligne       |
 | `app/client/App.tsx`          | Orchestration des trois panneaux, diff et historique        |
 | `app/client/DesignSystem.tsx` | Composants et scénarios partagés, interactions natives      |
 | `connectors/agents`           | Fournisseurs indépendants, résultat normalisé sans mutation |
@@ -78,6 +81,12 @@ GET : `/api/bootstrap`, `/api/state`, `/api/export`.
 POST : `/api/proposals`, `/api/commit`, `/api/undo`, `/api/import`, `/api/agent`.
 Les POST exigent JSON et la capacité de session reçue depuis le bootstrap same-origin.
 Toutes les autres routes API échouent, notamment commandes libres et Figma/write.
+
+Les routes privées `/_studio/health` et `/_studio/stop` exigent une capacité
+distincte, connue seulement du propriétaire du dossier et de son lanceur.
+Le contrôleur écoute sur une autre socket locale avec sa propre capacité ;
+ses seules actions sont start/open/stop/restart/prepare/quit. Il ne change pas
+le contrat des tokens ni le périmètre du chat. Voir [LAUNCHER](LAUNCHER.md).
 
 ## Limites évolutives
 

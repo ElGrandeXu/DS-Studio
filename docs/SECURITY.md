@@ -49,6 +49,15 @@ rollouts de cette session agent, sans promettre l’absence de télémétrie fou
 
 ## Identifiants et distribution
 
+Le [lanceur](LAUNCHER.md) possède une capacité de contrôle privée distincte des
+API de tokens. Elle n’est pas exposée par le bootstrap de l’application. Les
+routes de cycle de vie refusent les requêtes non authentifiées et cross-site.
+L’arrêt valide l’identité de l’instance sans envoyer de signal à un PID inconnu.
+Le panneau ne propose que des actions fixes ; l’installation npm est précédée
+d’une confirmation explicite et n’emploie jamais de droits administrateur.
+Les scripts npm des dépendances restent du code du projet : ne préparer qu’un
+dépôt de confiance. Les verrous et journaux privés restent exclus de Git.
+
 Ne jamais publier `.ds-studio/`, les caches des CLI, `.env`, les conversations ou les
 exports PFE sensibles. Le scan versionné détecte des motifs fréquents mais n’est
 pas une preuve mathématique d’absence de secret. Relire le contenu indexé ; un

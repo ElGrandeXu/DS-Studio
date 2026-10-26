@@ -9,12 +9,14 @@ import { CodexAdapter } from '../../connectors/agents/codex.js';
 import { unvalidatedAdapter } from '../../connectors/agents/unvalidated.js';
 import type { AgentAdapter } from '../../connectors/agents/types.js';
 import { figmaStatus } from '../../connectors/figma/contract.js';
+import type { RecordInfo } from '../../scripts/runtime.mjs';
 
 export async function createStudioServer(options: {
   root: string;
   store: Store;
   agent?: AgentAdapter;
   dev?: boolean;
+  control?: { record: RecordInfo; stop: () => void };
 }) {
   const { root, store } = options;
   const adapters: Record<string, AgentAdapter> = {
@@ -65,6 +67,23 @@ export async function createStudioServer(options: {
       if (req.headers['sec-fetch-site'] === 'cross-site')
         throw new StudioError('Requête externe refusée.', 403);
       const url = new URL(req.url ?? '/', origin);
+      if (url.pathname.startsWith('/_studio/')) {
+        const control = options.control;
+        if (
+          !control ||
+          req.headers['x-studio-control'] !== control.record.token
+        )
+          throw new StudioError('Contrôle privé refusé.', 403);
+        const { token: _token, ...identity } = control.record;
+        if (url.pathname === '/_studio/health' && req.method === 'GET')
+          return send(200, identity);
+        if (url.pathname === '/_studio/stop' && req.method === 'POST') {
+          send(200, identity);
+          setImmediate(control.stop);
+          return;
+        }
+        throw new StudioError('Route inconnue.', 404);
+      }
       if (url.pathname.startsWith('/api/')) {
         if (req.method === 'GET') {
           if (url.pathname === '/api/bootstrap')

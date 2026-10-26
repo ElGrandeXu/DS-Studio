@@ -16,25 +16,53 @@ Téléchargez Node depuis [le site officiel](https://nodejs.org/en/download).
 Git est facultatif si vous téléchargez une archive. Aucun Python, Docker, compte
 Figma ou abonnement IA n’est nécessaire pour démarrer.
 
-1. Clonez ou décompressez le projet, puis ouvrez un terminal dans son dossier.
-2. Exécutez :
+1. Clonez ou décompressez **tout le dossier**, puis double-cliquez sur le lanceur :
 
-   ```sh
-   npm ci
-   npm run build
-   npm start
-   ```
+   | Système | Fichier                                                                                             |
+   | ------- | --------------------------------------------------------------------------------------------------- |
+   | Linux   | **DS-Studio.desktop** (icône de développement ; autoriser l’exécution / faire confiance si demandé) |
+   | macOS   | **DS-Studio.app**, à laisser dans le dossier du projet                                              |
+   | Windows | **DS-Studio.vbs**, sans fenêtre de console                                                          |
 
-3. Ouvrez **http://127.0.0.1:4310** (pas `localhost`, le contrôle d’hôte est strict).
-4. Laissez ce terminal ouvert. **Ctrl+C** arrête le serveur ; fermer l’onglet ne l’arrête pas.
+2. Si Node manque, le guide graphique local s’ouvre. Le lanceur cherche aussi les
+   installations utilisateur hors PATH, sans exécuter vos profils shell.
+   Il ne télécharge pas Node et ne lance aucune commande administrateur.
+3. Au premier lancement, cliquez **Installer / compiler…**, puis confirmez
+   explicitement le téléchargement des dépendances et la compilation. Internet
+   est nécessaire. Le journal et les erreurs restent visibles dans le panneau.
+4. Cliquez **Démarrer DS-Studio**, puis **Ouvrir DS-Studio**. Aux lancements suivants,
+   un double-clic ouvre le panneau et démarre / ouvre automatiquement l’atelier
+   s’il est prêt et arrêté. S’il est déjà actif, il retrouve son panneau sans
+   créer un second serveur.
+5. Cliquez **Arrêter DS-Studio** dans le panneau pour arrêter le vrai serveur.
+   **Redémarrer** conserve les données. **Arrêter et quitter le lanceur** ferme
+   aussi son petit service local. Fermer le navigateur n’arrête pas le serveur :
+   un nouveau double-clic retrouve les commandes.
 
-Pour les lancements suivants : `npm start`, ou `./start.sh` sous Linux,
-`./start.command` sous macOS, `start.cmd` sous Windows. Ces lanceurs requièrent
-l’installation et la compilation ci-dessus. Ils affichent une URL mais n’ouvrent
-pas automatiquement le navigateur. Sur macOS un double-clic peut demander une
-autorisation système ; les lanceurs macOS/Windows restent **non testés** sur ces OS.
-Si les permissions exécutables sont perdues dans une archive : `sh start.sh` ou
-`sh start.command`. Windows : ouvrez PowerShell dans le dossier puis `npm start`.
+Le panneau utilise votre navigateur, pas Electron. Aucun runtime supplémentaire
+obligatoire. [Guide graphique hors ligne](launcher/INSTALLATION.html) et
+[dépannage détaillé](docs/LAUNCHER.md). Les lanceurs Finder et Windows sont
+**implémentés mais non testés sur ces OS** : application Mac non signée,
+Windows Script Host nécessaire au `.vbs`. Les protections de l’établissement
+peuvent bloquer ces fichiers ; ne les désactivez pas. Gardez les lanceurs dans
+le projet ; créez un raccourci système plutôt que de déplacer le fichier seul.
+
+### Le terminal reste disponible
+
+Depuis le dossier du projet :
+
+```sh
+npm ci
+npm run build
+npm start
+```
+
+Ouvrez **http://127.0.0.1:4310** (pas `localhost`, le contrôle d’hôte est strict).
+Laissez ce terminal ouvert. **Ctrl+C** arrête le serveur ; fermer l’onglet ne l’arrête pas.
+Les scripts historiques `./start.sh`, `./start.command` et `start.cmd` restent
+disponibles après installation et compilation ; ils affichent l’URL sans ouvrir
+le navigateur. `npm run launcher` ouvre le nouveau panneau. Si une archive a
+perdu les permissions exécutables : `sh start.sh` ou `sh start.command`.
 
 `npm run doctor` vérifie les prérequis sans ouvrir d’identifiants. Un dossier
 contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de service.

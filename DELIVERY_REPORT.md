@@ -1,139 +1,163 @@
-# DS-Studio V1 — rapport de livraison
+# DS-Studio V1.1 — livraison du lanceur multiplateforme
 
-**Statut : READY pour commit et publication manuels du starter.**
-Date : 26 octobre 2026. Ce statut décrit la préparation du dépôt, pas une
-validation de toutes les intégrations ou des trois systèmes d’exploitation.
-Aucune publication, aucun commit, aucun push et aucun dépôt distant créé.
+Date : **27 octobre 2026** (travail commencé le 26). Dépôt existant conservé.
+**Statut : TESTED sur Linux pour les parcours ci-dessous ; macOS / Windows PARTIAL.**
+L’implémentation initiale a été livrée sans commit ni push. Max a ensuite autorisé
+explicitement la publication sur `origin/main`, avec le commit
+`feat: add cross-platform DS-Studio launchers` et le tag `v1.1.0-launchers`.
+Le tag existant `v1.0.0-starter` est conservé sans modification. Aucune nouvelle
+release GitHub, aucun dépôt ni déploiement ne fait partie de cette publication.
 
-## Démarrer
+## Résultat utilisable
 
-Depuis le dossier téléchargé ou cloné, avec Node.js 22.12+ et npm :
+Double-cliquer sur **DS-Studio.desktop** sous Linux. Le panneau léger s’ouvre dans
+le navigateur existant, sans terminal. Si l’atelier est prêt et arrêté, il démarre
+et s’ouvre automatiquement. S’il est déjà actif, le même panneau est retrouvé,
+sans second serveur. Boutons : Démarrer, Ouvrir, Arrêter, Redémarrer, et Arrêter
+et quitter le lanceur. États : arrêté, démarrage, actif, erreur.
 
-```sh
-npm ci
-npm run build
-npm start
-```
+Au premier lancement, les dépendances / le build manquants demandent une préparation
+explicitement confirmée avant `npm ci` et `npm run build`. Node 22.12+ est recherché
+hors PATH, y compris dans l’installation utilisateur du MSI. Si absent ou trop
+ancien, un guide HTML local explique une installation graphique officielle.
+Aucune commande privilégiée, installation Node, configuration système ou connexion
+IA n’est exécutée automatiquement. Aucun paquet npm supplémentaire ajouté.
 
-Ouvrir **http://127.0.0.1:4310**. Garder le terminal ouvert ; Ctrl+C arrête le serveur.
-Après installation/compilation, Linux : `./start.sh` ; macOS : `./start.command` ;
-Windows : `start.cmd` ou `npm start` dans PowerShell. Les deux derniers OS ne sont
-pas qualifiés ici. Node 22.23.4 est la version réellement utilisée sur Linux.
-Les lanceurs n’ouvrent pas automatiquement le navigateur.
+Le même contrôleur est appelé par **DS-Studio.app** sur Mac et **DS-Studio.vbs** sur
+Windows. Ce sont des entrées légères, pas une nouvelle application Electron.
+**Ces deux entrées n’ont pas été exécutées sur macOS / Windows.** Mac : bundle non
+signé / non notarié, contrôle de quarantaine à qualifier. Windows : Windows Script
+Host / VBScript doit être disponible et autorisé. Aucun contournement automatique
+d’une politique d’établissement. Le [guide graphique](launcher/INSTALLATION.html)
+explique ces limites et les actions accessibles sans terminal.
 
-Le cœur manuel fonctionne sans compte IA, sans Figma et sans réseau après installation.
-L’installation des dépendances, les téléchargements de tests et l’IA cloud nécessitent
-une connexion. Aucun compte enseignant, identifiant ou cache d’authentification distribué.
+## Corrections de fiabilité
 
-## Fonctionnalités : état réellement démontré
+L’ancien démarrage créait un verrou par `writeFile(..., {flag: 'wx'})` et refusait
+ensuite tout fichier existant, y compris le PID d’une instance morte. La récupération
+nécessitait donc une intervention manuelle après crash.
 
-| Fonction | Statut | Portée de la preuve |
-| --- | --- | --- |
-| Application locale et trois panneaux | TESTED | Lancement Linux, HTML et ressources compilées chargés |
-| DS Lisière fictif, 18 tokens et composants partagés | TESTED | Catalogue et scénario issus des mêmes sources React/CSS |
-| Édition manuelle et diff avant acceptation | TESTED | Proposition sans écriture, refus, puis acceptation explicite |
-| Propagation des tokens | TESTED | Couleurs CSS sur action, réservation et navigation, catalogue et iframe |
-| Viewports 320, 375, 430 et 1024 px CSS | TESTED | Largeurs internes réelles, media queries une/deux colonnes, pas de zoom simulé |
-| Interactions de démonstration | TESTED | Réservation, navigation, saisie et confirmation de formulaire locales |
-| Persistance après redémarrage | TESTED | Arrêt et relance d’un vrai processus, relecture du journal |
-| Annulation sélective | TESTED | Couleur restaurée sans perdre un espacement modifié ; conflits refusés |
-| Import/export JSON local | TESTED | Téléchargement navigateur, import avec diff, invalides sans mutation |
-| Validation, concurrence et périmètre HTTP | TESTED | Types, fichiers corrompus, Host/Origin/session, chemins et commandes non exposés |
-| Chat Codex 0.164.0 | TESTED | Vrai CLI, chat Chromium/API, proposition puis validation, propagation aux deux vues |
-| Harness et deux skills Design System | IMPLEMENTED | Fichiers utilisables, validation structurelle des skills ; pas d’évaluation pédagogique indépendante |
-| Adaptateurs Claude Code et Gemini intégrés | NOT IMPLEMENTED | Points d’extension documentés, explicitement indisponibles |
-| Figma MCP et synchronisation | NOT IMPLEMENTED | Statut non connecté, contrat et progression documentés ; aucun accès tenté |
-| Orchestration parallèle multi-agent | NOT IMPLEMENTED | Architecture multi-fournisseurs seulement |
-| macOS et Windows | PARTIAL | Chemins/scripts conçus pour ces OS, aucune exécution réelle sur ceux-ci |
-| Application desktop installable et simulation iOS native | NOT IMPLEMENTED | Application web locale uniquement |
+Le mécanisme partagé du serveur et du contrôleur possède désormais :
 
-## Tests exécutés pendant la construction
+- Une identité privée par instance : PID, identifiant aléatoire, capacité, racine,
+  dossier et port ; publication atomique des fichiers de verrouillage.
+- Un garde noyau loopback par dossier canonique / rôle, conservé pendant toute
+  la vie de l’instance. Il empêche deux écrivains et sérialise la récupération.
+- Une récupération automatique uniquement pour un PID disparu. Les anciens
+  verrous numériques morts sont reconnus. Un PID vivant ou réutilisé, un verrou
+  mal formé ou un lien symbolique n’est jamais supprimé automatiquement.
+- Un arrêt HTTP privé après vérification de l’identité complète, sans signal à
+  un PID inconnu. Le serveur ferme ses requêtes et attend sa file d’écritures,
+  puis libère son propre verrou. Aucun killall / pkill / taskkill.
+- Des opérations du panneau sérialisées, y compris deux clics simultanés. Un crash
+  du seul panneau permet de retrouver et d’arrêter le serveur encore vivant.
 
-Les résultats suivants ont été exécutés et lus avant l’arrêt contrôlé, le même jour.
-Ils n’ont pas été relancés inutilement pendant la finalisation ; aucun code applicatif
-n’a changé depuis. Plateforme : Linux Mint 22.3 x86_64, Node 22.23.4, Chromium Playwright.
+Un port de protection occupé provoque un refus sûr, pas une suppression de données.
+Les requêtes du panneau exigent une capacité privée, l’hôte exact et une origine
+locale ; cross-site est refusé. Aucun accès libre aux fichiers ou aux commandes.
+Le projet et les dépendances npm doivent néanmoins provenir d’une source de confiance.
+Détails : [LAUNCHER](docs/LAUNCHER.md), [SECURITY](docs/SECURITY.md).
 
-| Commande / contrôle | Résultat |
-| --- | --- |
-| `npm ci` | Réussi avec lockfile ; 35 paquets installés, 36 audités, 0 vulnérabilité signalée à cet instant |
-| `npm run check` et `npm run build` | TypeScript et compilation Vite réussis |
-| `npm test` | **21 tests réussis, 0 échec, 0 ignoré** |
-| `npm run test:e2e` | **4 tests réussis**, environ 8,2 secondes |
-| `npm run qualify` | Vrai lanceur depuis un cwd à espaces, verrou interprocessus, écriture, redémarrage, persistance et annulation réussis |
-| `npm run qualify:live` | Vrai chat Codex dans Chromium, diff sans auto-commit, acceptation explicite, styles catalogue/mobile et réservation réussis |
-| `npm run test:live` | JSON demandé reçu ; demande hostile sans outil retourné et canari extérieur absent ; aucun commit automatique |
-| `npm run test:auth` | CLI réel avec CODEX_HOME temporaire vide : refus exploitable ; compte réel inchangé |
-| Validation des deux `SKILL.md` | Deux succès structurels ; pas une preuve de pertinence en situation étudiant |
+## Validation Linux exécutée
 
-La suite normale reste indépendante de l’IA et de Figma. Certains cas d’erreur
-CLI y sont simulés pour rester hors ligne ; cela est distingué du véritable test
-sans authentification et des essais connectés. Les artefacts locaux de navigateur
-restent ignorés par Git et ne sont pas nécessaires à la distribution.
+Environnement : Linux Mint 22.3 x86_64, session Xfce/X11, Node **22.23.4**,
+Chromium Playwright et navigateur système Firefox via `xdg-open`.
+Les tests utilisent des projets / données temporaires, pas le journal étudiant.
 
-Les tests sont reproductibles : voir [TESTING](docs/TESTING.md).
-Les commandes suffixées `live` peuvent consommer du quota ; ne pas les lancer
-systématiquement sur les comptes étudiants.
+| Vérification                | Résultat réellement observé                                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `npm run check`             | TypeScript réussi                                                                                          |
+| `npm run build`             | Compilation TypeScript et Vite réussie, bundle V1 inchangé fonctionnellement                               |
+| `npm test`                  | **21 tests réussis**, aucun échec ni test ignoré                                                           |
+| `npm run test:e2e`          | **4 tests réussis** : parcours V1, diff, persistance, viewers, responsive, import/export                   |
+| `npm run test:launcher`     | **20 tests réussis**, aucun échec ni test ignoré ; vraie première installation dans une copie vide         |
+| `npm run qualify`           | Ancien lanceur terminal, verrou interprocessus, écriture, arrêt, relance, persistance et undo réussis      |
+| `npm run qualify:desktop`   | Vrai `.desktop` exécuté par GIO, ouverture du navigateur système, boutons du panneau et relance réussis    |
+| Contrôles statiques         | `desktop-file-validate`, `sh -n`, lecture plist et script Windows ASCII, `git diff --check` réussis        |
+| Anciennes entrées Linux     | `npm start` et `start.sh` réellement lancés ; HTTP et arrêt propre vérifiés, Node hors PATH pour le script |
+| Contrôle de publication     | **78 fichiers publiables, 0 alerte** ; fichiers suivis, nouveaux non ignorés et index existant             |
+| Audit npm avant publication | **0 vulnérabilité signalée** par `npm audit`, dépendances de développement incluses                        |
 
-## Contrôles de finalisation
+Avant le commit V1.1, la compilation, les 21 tests V1, les 20 tests du lanceur,
+les 4 tests navigateur et la qualification du lancement terminal ont été rejoués
+avec succès. Aucun nouveau code fonctionnel n’a été ajouté pendant cette étape.
 
-- Lecture intégrale du suivi local et reprise sans développement supplémentaire.
-- Sélection explicite des **62 fichiers** à publier : sources, tests, scripts, harness,
-  guides, exemple de DS, configuration, lockfile, licence et présent rapport.
-- `.gitignore` corrigé pour exclure `/PROGRESS.md`, conservé intégralement localement.
-  Données `.ds-studio/`, dépendances, builds, résultats de tests et caches privés exclus.
-- `npm run scan` exécuté sur le contenu de travail et l’index : **0 alerte**.
-  Ce scan heuristique détecte des motifs fréquents et des chemins personnels ; il
-  ne constitue pas une garantie mathématique contre toute forme de secret.
-- README, START_HERE, guides, limitations et lanceurs relus ; liens Markdown locaux
-  contrôlés, dépendances exactes comparées au lockfile, modes exécutables vérifiés.
-- `sh -n start.sh start.command` et `git diff --cached --check` réussis.
-- Smoke test de reprise : **`./start.sh` réellement lancé**, HTTP 4310, HTML, ressources
-  compilées et 18 tokens vérifiés ; arrêt propre, verrou libéré et empreinte du
-  fichier d’état local identique avant/après.
-- Aucun serveur ou processus de test de cette mission laissé en fonctionnement.
-  Aucun fichier de MARC modifié pendant cette finalisation. La comparaison effectuée
-  lors de la construction avait déjà constaté 4 450 fichiers inchangés.
+La suite launcher vérifie notamment :
 
-Aucune nouvelle recherche Figma, installation, authentification, fonctionnalité ou
-modification du code applicatif pendant la finalisation.
+1. Premier lancement sans dépendances, deux entrées simultanées, absence d’installation
+   implicite, refus sans confirmation et annulation réelle du dialogue Chromium.
+2. `npm ci` et compilation réellement exécutés après confirmation ; panneau et atelier
+   ouverts dans Chromium ; fermeture du navigateur sans arrêt du serveur.
+3. Arrêt propre, redémarrage, changements de PID, conservation octet par octet de
+   l’état après une modification réellement validée dans l’API.
+4. Cinq serveurs concurrents refusés sur les mêmes données, ports différents ; deux
+   clics Démarrer sérialisés ; processus étranger et verrou actif intacts.
+5. Port application occupé sans arrêt de l’occupant ; crash SIGKILL et récupération ;
+   crash du contrôleur seul ; ancien verrou PID mort ; état corrompu, verrou invalide
+   et lien symbolique conservés sans remise à zéro ; quitter puis relancer.
 
-## État Git et publication manuelle
+La découverte Node hors PATH est exercée avec un domicile temporaire et aussi par
+le vrai bootstrap du `.desktop` avec `/usr/bin:/bin` seulement dans le PATH.
+L’absence de Node est exercée dans un environnement isolé sans candidat disponible ;
+aucune désinstallation du Node réel. Un ouvreur de navigateur persistant de test
+ne bloque pas Arrêter / Quitter. Les limites exactes sont dans [TESTING](docs/TESTING.md).
 
-Branche **main**, dépôt local initialisé, **62 fichiers indexés pour le premier commit**.
-Aucun commit existant, aucun remote, aucun push ni publication. L’index constitue la
-sélection destinée au dépôt public ; les fichiers privés restent sur la machine.
+Le test graphique exécute le `.desktop` depuis un projet déplacé dont le chemin
+contient espaces, accents, apostrophe et dollar. Il vérifie double lancement,
+ouverture réelle, redémarrage, arrêt par bouton, nouveau lancement automatique
+après arrêt et fermeture du contrôleur. GIO exerce l’entrée du double-clic ; ce
+n’est pas une manipulation physique de souris ni une qualification de tous les
+bureaux Linux. Capture locale : `test-results/launcher-linux.png` (ignorée par Git).
 
-La livraison est prête pour un commit puis une publication manuels par l’enseignant.
-Relire `git diff --cached --name-only` et conserver cette sélection. **Ne pas déposer
-sur GitHub une archive brute du dossier local**, qui contient des fichiers ignorés.
-Après le premier commit manuel, une archive produite depuis ce commit ou le clonage
-du dépôt publié contiendra la sélection versionnée, pas les données privées locales.
+Les essais ont également détecté et corrigé un échappement `.desktop` refusé par
+GLib malgré le validateur, un état/pid transitoirement absent pendant une opération,
+et une course entre ouverture automatique et demande de fermeture. Les assertions
+correspondantes et la qualification réelle ont été rejouées après correction.
 
-Licence MIT pour le code original, licences propres aux dépendances conservées via
-npm. Aucun code, mémoire personnelle ou conversation de MARC copié dans le starter.
+## Préservation et périmètre
 
-## Limites et risques restants
+`.ds-studio/state.json` du projet original conserve exactement l’empreinte relevée
+avant intervention. Les écritures / crashes de qualification portent uniquement
+sur les fixtures. Aucun fichier de MARC, document personnel ou identifiant de
+compte modifié. Aucun processus Node étranger terminé. Aucun compte IA ni accès
+Figma nécessaire, aucun test connecté consommant du quota relancé.
 
-1. **Compatibilité** : macOS/Windows, leurs lanceurs et le workflow CI restent à exécuter
-   sur de vraies machines. Le workflow écrit n’est pas une preuve de réussite multi-OS.
-2. **Codex** : seule la version 0.164.0 est qualifiée. Compte, réseau et quota personnels
-   nécessaires ; chat non persistant. Un test hostile ne démontre pas un confinement
-   formel du CLI. L’agent externe utilisé pour développer a ses propres permissions.
-3. **Figma, Claude et Gemini** : non opérationnels dans l’application. Ne pas annoncer
-   de synchronisation ni contourner les restrictions. Le contrat n’est pas une intégration.
-4. **Données** : format local fermé, sans migration automatique lors d’ajout de clés,
-   sans sauvegarde automatique. Historique limité à 10 Mo avec refus sans troncature ;
-   propositions en mémoire perdues à l’arrêt. Un verrou après crash exige un contrôle
-   avant retrait. La durabilité après coupure électrique n’est pas qualifiée.
-5. **Accessibilité et sécurité** : contrôles ciblés, pas de certification WCAG ni audit
-   complet de tous navigateurs. Serveur destiné à l’usage local, pas à une exposition réseau.
+Le mode manuel et l’architecture React / serveur HTTP / store ne sont pas refondus.
+Les seules modifications applicatives ajoutent le cycle de vie privé, le verrou
+récupérable et l’attente des écritures à l’arrêt. Les anciens `npm start`, `start.sh`,
+`start.command` et `start.cmd` restent disponibles ; Linux / lanceur commun testés,
+les deux scripts natifs macOS et Windows demeurent à vérifier sur leurs OS.
 
-Détails : [sécurité](docs/SECURITY.md), [agents](docs/AGENT_ADAPTERS.md),
-[Figma](docs/FIGMA.md), [guide enseignant](docs/TEACHER_GUIDE.md).
+## Fichiers destinés à publication
 
-## Première tâche conseillée aux étudiants
+Entrées OS, contrôleur et runtime standard, interface et guide graphique sous
+`launcher/`, tests launcher et qualification desktop, mise à jour des guides,
+du README, de la CI et du présent rapport. Le scan existant inclut désormais les
+nouveaux fichiers non ignorés : aucun besoin de les indexer pour les contrôler.
 
-Effectuer la boucle manuelle de couleur, puis choisir un token pertinent pour son PFE,
-le vérifier sur deux composants et à 320 px, et consigner la décision dans le workspace.
-Créer ensuite son propre dépôt privé sans identifiants. Le [backlog](docs/ROADMAP.md)
-est un menu de directions possibles, pas une feuille de route imposée aux 19 projets.
+Les dépendances, builds, captures, caches, fichiers d’authentification et `.ds-studio/`
+restent ignorés. Le scan est heuristique : il ne garantit pas mathématiquement
+l’absence de tout secret. Aucun chemin propre au MSI n’est inscrit dans les
+lanceurs publiables. Modes exécutables des entrées Unix conservés sur disque ;
+une archive / un bureau peut encore demander une autorisation explicite.
+
+La CI inclut désormais `test:launcher` sur Linux, macOS et Windows. Ses résultats
+distants doivent être consultés après publication ; les preuves rapportées ici
+sont celles des exécutions locales Linux. La matrice
+native de [TESTING](docs/TESTING.md) reste à exécuter avant de qualifier Finder et
+Windows Script Host pour la classe. La validation personnelle par l’enseignant
+n’est pas remplacée par ces tests automatisés.
+
+## Limites conservées de V1
+
+Le cœur manuel est autonome après installation. Le chat Codex demeure facultatif
+et dépend de son compte, de son réseau et de la version qualifiée précédemment.
+Claude, Gemini et Figma ne deviennent pas opérationnels par ce travail. Le stockage
+n’est ni une sauvegarde automatique ni une garantie face à une panne électrique.
+Les propositions non validées en mémoire sont perdues à l’arrêt, pas les tokens
+et l’historique enregistrés. Un fichier d’état corrompu est préservé, jamais effacé.
+
+Le contrôle de fraîcheur du build utilise les dates de fichiers ; après restauration
+de timestamps anciens, demander volontairement une recompilation. Une collision
+sur un port auxiliaire peut empêcher le démarrage sans danger pour les données.
+Aucune protection contre un programme malveillant déjà exécuté sous le même compte.

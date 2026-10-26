@@ -1,5 +1,23 @@
 # Votre DS-Studio, pas celui de votre voisin
 
+## Ouvrir et fermer son atelier
+
+Double-cliquez sur **DS-Studio.desktop** (Linux), **DS-Studio.app** (Mac) ou
+**DS-Studio.vbs** (Windows), en gardant le fichier dans le projet. Au premier
+lancement, le panneau vous demande de confirmer **Installer / compiler…** si
+nécessaire. Si Node.js manque, un guide graphique explique son installation ;
+DS-Studio n’installe rien avec des droits administrateur.
+
+Après préparation : **Démarrer DS-Studio**, puis **Ouvrir DS-Studio**. Les doubles-clics
+suivants démarrent et ouvrent l’atelier prêt. Le panneau reste l’endroit où cliquer
+sur **Arrêter** ou **Redémarrer**. Vos tokens et votre historique sont conservés.
+Fermer le navigateur n’arrête pas le serveur : retrouvez le panneau par un nouveau
+double-clic. **Arrêter et quitter le lanceur** ferme l’ensemble.
+
+Une erreur reste affichée : ne supprimez jamais vos données pour la faire
+disparaître. [Guide graphique](../launcher/INSTALLATION.html) et
+[dépannage](LAUNCHER.md). Mac / Windows : validation native encore à effectuer.
+
 ## Mardi matin : s’approprier le starter
 
 Installez depuis le README, effectuez la boucle de couleur **avant de demander à

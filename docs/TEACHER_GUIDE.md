@@ -53,12 +53,20 @@ n’est **pas** chargé automatiquement. Garder ce dossier hors de tout dépôt 
 
 ### Verrou après crash
 
-Le fichier `.ds-studio/server.lock` contient le PID de l’instance. Fermer tous les
-serveurs DS-Studio concernés. Vérifier dans le gestionnaire de processus que ce PID
-n’est plus actif et qu’aucune autre instance n’utilise ce dossier. **Seulement alors**,
-retirer uniquement `server.lock`, après sauvegarde si doute, puis redémarrer. Ne pas
-effacer `state.json`, ne pas tuer un processus inconnu et ne pas forcer le verrou en
-présence d’une instance active. Le starter ne le supprime pas automatiquement.
+Le verrou contient maintenant une identité JSON (PID, identifiant d’instance,
+racine, dossier, port et capacité privée). Un garde noyau local empêche deux
+serveurs et sérialise la récupération. Après un crash, un PID disparu permet la
+récupération automatique ; `state.json` reste intact. Le vieux format PID seul
+est également récupéré si le PID est mort. Un PID actif, même réutilisé par un
+autre programme, n’est jamais tué ni effacé automatiquement.
+
+Le panneau arrête uniquement une instance qui répond au protocole privé avec
+la bonne identité. Une ancienne instance sans ce protocole doit être arrêtée
+par son terminal d’origine. Un verrou mal formé, un lien symbolique ou une identité
+non confirmée provoque un refus, pas un nettoyage destructif. Pour une intervention
+manuelle exceptionnelle, identifier le propriétaire dans le gestionnaire de
+processus et vérifier l’absence de serveur avant tout retrait du seul verrou.
+Ne jamais supprimer `state.json`. Voir [LAUNCHER](LAUNCHER.md).
 
 ## Qualification reproductible
 

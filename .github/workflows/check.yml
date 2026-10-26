@@ -20,5 +20,6 @@ jobs:
       - run: npm test
       - run: npx playwright install chromium
       - run: npm run test:e2e
+      - run: npm run test:launcher
       - run: npm run qualify
       - run: npm run scan

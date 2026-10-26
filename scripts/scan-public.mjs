@@ -1,13 +1,24 @@
 // Scan borné aux fichiers du nouveau dépôt. Ne lit jamais le domicile ni les caches de comptes.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
-  .split('\0')
-  .filter(Boolean);
+const tracked = new Set(
+  execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
+    .split('\0')
+    .filter(Boolean),
+);
+const files = [
+  ...new Set(
+    execFileSync(
+      'git',
+      ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+      { encoding: 'utf8' },
+    )
+      .split('\0')
+      .filter(Boolean),
+  ),
+];
 if (!files.length) {
-  console.error(
-    'Aucun fichier indexé. Exécutez git add . puis relancez le scan.',
-  );
+  console.error('Aucun fichier publiable détecté.');
   process.exit(1);
 }
 const patterns = [
@@ -29,10 +40,14 @@ for (const file of files) {
   }
   const contents = [
     readFileSync(file, 'utf8'),
-    execFileSync('git', ['show', ':' + file], {
-      encoding: 'utf8',
-      maxBuffer: 20_000_000,
-    }),
+    ...(tracked.has(file)
+      ? [
+          execFileSync('git', ['show', ':' + file], {
+            encoding: 'utf8',
+            maxBuffer: 20_000_000,
+          }),
+        ]
+      : []),
   ];
   if (contents.some((text) => patterns.some((p) => p.test(text)))) {
     console.error('Motif sensible ou chemin personnel : ' + file);
@@ -40,7 +55,7 @@ for (const file of files) {
   }
 }
 console.log(
-  `${files.length} fichiers suivis/indexés contrôlés (contenu de travail et index). ${failures} alerte(s).`,
+  `${files.length} fichiers publiables contrôlés (suivis, nouveaux non ignorés et index existant). ${failures} alerte(s).`,
 );
 console.log(
   'Contrôle heuristique : compléter par une revue humaine avant publication.',

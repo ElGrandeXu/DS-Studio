@@ -83,6 +83,9 @@ export class Store {
   snapshot(): State {
     return structuredClone(this.state);
   }
+  async flush() {
+    await this.queue;
+  }
   propose(
     revision: number,
     changes: { key: TokenKey; value: TokenValue }[],
