@@ -85,19 +85,22 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 ## Atelier plein écran
 
 L’atelier occupe toute la fenêtre, sans défilement global. À partir de 1100 px,
-les trois panneaux restent côte à côte ; sur une fenêtre plus étroite, utilisez
-**Agent**, **Design System** et **Aperçu** pour changer de panneau sans perdre
-votre travail en cours. Seuls les contenus internes défilent. L’aperçu conserve
-sa largeur réelle, y compris lorsqu’un déplacement horizontal est nécessaire.
+l’inventaire et les propriétés restent à gauche du canevas, l’agent facultatif à
+droite. **Composants** et **Aperçu** sont deux vues du même canevas. Le bouton
+**Agent** replie l’assistant ; **Agrandir le canevas** libère toute la zone de
+travail. Sur une fenêtre étroite, utilisez **Tokens**, **Composants**, **Aperçu**
+et **Agent** : les états et brouillons sont conservés. Seuls les contenus internes
+défilent. L’aperçu garde sa largeur CSS réelle, avec défilement local si nécessaire.
 
-[Rapport de refonte UI : direction artistique, audit et vérifications](docs/UI_REDESIGN_REPORT.md).
+[Product design reboot : audit Impeccable, trois explorations, captures et tests](docs/design-reboot/REPORT.md).
+La [refonte précédente](docs/UI_REDESIGN_REPORT.md) est conservée comme historique.
 
 ## Votre première boucle, en deux minutes
 
 1. Dans **Design System**, choisissez `color.brand`, remplacez la valeur par `#8A3B20`.
-2. Cliquez **Proposer**. Le diff montre l’ancienne et la nouvelle valeur, sans écriture.
+2. Cliquez **Proposer**. Le diff montre les valeurs et un spécimen avant/après, sans écriture.
 3. Cliquez **Valider et enregistrer**. Boutons, réservation et navigation changent dans les deux vues.
-4. Testez la réservation, puis les viewports 320, 375, 430 et 1024 px (défilement horizontal si nécessaire).
+4. Dans **Aperçu**, testez la réservation, puis les viewports 320, 375, 430 et 1024 px (défilement horizontal si nécessaire).
 5. Rechargez ou redémarrez : la valeur reste. Dans **Historique**, annulez la révision,
    examinez son diff et validez. Les changements des autres tokens sont conservés.
 

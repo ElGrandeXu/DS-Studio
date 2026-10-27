@@ -39,8 +39,8 @@ export function BookingCard() {
   const [booked, setBooked] = useState(false);
   return (
     <article className="ds-card">
-      <div className="card-kicker">ATELIER · 45 MIN</div>
       <h3>Faire moins, mais mieux.</h3>
+      <p className="workshop-duration">Atelier · 45 min</p>
       <p>Un atelier pour imaginer des services plus attentifs au quotidien.</p>
       <div className="card-meta">
         <span className="ds-badge">6 places disponibles</span>
@@ -123,9 +123,7 @@ export function Catalogue({ tokens }: { tokens: Tokens }) {
     <DSProvider tokens={tokens}>
       <div className="catalogue">
         <section>
-          <div className="section-label">01 / ACTIONS</div>
-          <h3>Un langage commun.</h3>
-          <p>Les mêmes tokens, du composant à l’écran.</p>
+          <h3 className="specimen-heading">Boutons</h3>
           <div className="button-row">
             <Button>Action principale</Button>
             <Button variant="secondary">Secondaire</Button>
@@ -138,15 +136,15 @@ export function Catalogue({ tokens }: { tokens: Tokens }) {
           </p>
         </section>
         <section>
-          <div className="section-label">02 / CONTENUS</div>
+          <h3 className="specimen-heading">Carte atelier</h3>
           <BookingCard />
         </section>
         <section>
-          <div className="section-label">03 / SAISIE</div>
+          <h3 className="specimen-heading">Formulaire</h3>
           <ExampleForm />
         </section>
         <section>
-          <div className="section-label">04 / NAVIGATION</div>
+          <h3 className="specimen-heading">Navigation</h3>
           <Navigation />
         </section>
       </div>
@@ -171,7 +169,6 @@ export function Scenario({
         </header>
         <Navigation />
         <main>
-          <div className="section-label">LE QUOTIDIEN, AUTREMENT</div>
           <h1>
             De petites idées.
             <br />
@@ -187,7 +184,6 @@ export function Scenario({
             <div className="scenario-grid">
               <BookingCard />
               <article className="ds-card">
-                <div className="card-kicker">À VOTRE RYTHME</div>
                 <h3>Un quartier qui inspire.</h3>
                 <p>Explorez vos prochaines rencontres.</p>
                 <Button variant="secondary">Voir les ateliers</Button>

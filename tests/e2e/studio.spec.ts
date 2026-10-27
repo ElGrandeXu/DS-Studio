@@ -5,12 +5,12 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
 }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: /Atelier de design/ }),
+    page.getByRole('heading', { name: 'Lisière', exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText('Figma non connecté', { exact: true }),
   ).toBeVisible();
-  const catalogue = page.locator('.ds-panel');
+  const catalogue = page.locator('.catalogue');
   const mobile = page.frameLocator('iframe');
   const mainButton = catalogue.getByRole('button', {
     name: 'Action principale',
@@ -30,6 +30,15 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('#3154C4');
   await expect(dialog).toContainText('#8A3B20');
+  const specimens = dialog.locator('.proposal-preview .ds-button');
+  await expect(specimens.nth(0)).toHaveCSS(
+    'background-color',
+    'rgb(49, 84, 196)',
+  );
+  await expect(specimens.nth(1)).toHaveCSS(
+    'background-color',
+    'rgb(138, 59, 32)',
+  );
   await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
   await dialog.getByRole('button', { name: 'Ne pas appliquer' }).click();
   await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
@@ -40,6 +49,10 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
   await expect(
     catalogue.getByRole('button', { name: 'Réserver une place', exact: true }),
   ).toHaveCSS('background-color', 'rgb(138, 59, 32)');
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
   await expect(
     mobile.getByRole('button', { name: 'Réserver une place', exact: true }),
   ).toHaveCSS('background-color', 'rgb(138, 59, 32)');
@@ -61,6 +74,11 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
   await dialog.getByRole('button', { name: 'Valider et enregistrer' }).click();
   await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
   await expect(mainButton).toHaveCSS('padding-left', '22px');
+  await page.keyboard.press('Escape'); // L'historique reprend après l'annulation.
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
   await expect(
     mobile.getByRole('button', { name: 'Réserver une place', exact: true }),
   ).toHaveCSS('background-color', 'rgb(49, 84, 196)');
@@ -72,6 +90,10 @@ test('largeurs réelles, interactions, formulaire et desktop responsive', async 
 }) => {
   await page.goto('/');
   const frame = page.frameLocator('iframe');
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
   for (const [value, width] of [
     ['0', 320],
     ['1', 375],

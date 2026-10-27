@@ -146,7 +146,7 @@ try {
       const updated = await (await fetch(origin + '/api/state')).json();
       assert.equal(updated.tokens['color.brand'].$value, '#8A3B20');
       const button = page
-        .locator('.ds-panel')
+        .locator('.catalogue')
         .getByRole('button', { name: 'Action principale', exact: true });
       await expect(button).toHaveCSS('background-color', 'rgb(138, 59, 32)');
       const mobile = page
@@ -161,6 +161,10 @@ try {
             'rgb(138, 59, 32)'
         );
       });
+      await page
+        .locator('.canvas-tabs')
+        .getByRole('button', { name: 'Aperçu', exact: true })
+        .click();
       await mobile.click();
       await page
         .frameLocator('iframe')

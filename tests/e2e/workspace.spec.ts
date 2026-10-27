@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { contrast } from '../../app/shared/model.js';
 
 async function expectWindowFit(page: import('@playwright/test').Page) {
   const dimensions = await page.evaluate(() => {
@@ -55,7 +56,7 @@ test('fenêtre entière, sans scroll global : desktop, tablette, téléphone et 
     await expect(page.locator('#agent-panel')).toBeVisible({
       visible: width >= 1100,
     });
-    await expect(page.locator('#mobile-panel')).toBeVisible({
+    await expect(page.locator('#canvas-panel')).toBeVisible({
       visible: width >= 1100,
     });
     const panel = await page.locator('#ds-panel').boundingBox();
@@ -78,10 +79,18 @@ test('scroll strictement local et viewport réel : largeur desktop accessible sa
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
   const stage = page.locator('.viewport-scroll');
   await expect
     .poll(() => stage.evaluate((el) => el.scrollHeight - el.clientHeight))
     .toBe(0);
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Composants', exact: true })
+    .click();
   const scroll = page.locator('.ds-scroll');
   await scroll.hover();
   await page.mouse.wheel(0, 650);
@@ -100,6 +109,10 @@ test('scroll strictement local et viewport réel : largeur desktop accessible sa
       .locator('.catalogue')
       .getByText('Votre espace personnel de démonstration.'),
   ).toBeVisible();
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
   await page
     .getByRole('combobox', { name: 'Viewport', exact: true })
     .selectOption('3');
@@ -144,7 +157,7 @@ test('petit écran : trois panneaux accessibles, brouillon conservé et historiq
     .getByRole('combobox', { name: 'Viewport', exact: true })
     .selectOption('0');
   await page.screenshot({ path: info.outputPath('preview-mobile.png') });
-  await nav.getByRole('button', { name: /Design System/ }).click();
+  await nav.getByRole('button', { name: 'Tokens', exact: true }).click();
   await expect(page.getByLabel('Valeur du token')).toHaveValue('#704020');
   await page.getByRole('button', { name: 'Proposer', exact: true }).click();
   await expect(
@@ -183,6 +196,10 @@ test('composants partagés : focus, hover, désactivé et validation native du f
     page.locator('.catalogue').getByRole('button', { name: 'Indisponible' }),
   ).toBeDisabled();
   await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
+  await page
     .getByRole('combobox', { name: 'Scénario', exact: true })
     .selectOption('form');
   const frame = page.frameLocator('iframe');
@@ -197,4 +214,205 @@ test('composants partagés : focus, hover, désactivé et validation native du f
   ).not.toBeVisible();
   await expect(frame.getByPlaceholder('Non disponible')).toBeDisabled();
   await expectWindowFit(page);
+});
+
+test('canevas dominant : replier l’agent et agrandir conserve les états interactifs', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const card = page
+    .locator('.catalogue')
+    .getByRole('button', { name: 'Réserver une place', exact: true });
+  await card.click();
+  const canvas = page.locator('#canvas-panel');
+  const before = (await canvas.boundingBox())!.width;
+  await page
+    .getByRole('button', { name: 'Afficher ou masquer l’agent' })
+    .click();
+  await expect(page.locator('#agent-panel')).not.toBeVisible();
+  expect((await canvas.boundingBox())!.width).toBeGreaterThan(before);
+  await page.getByLabel('Valeur du token').fill('#554433');
+  await page.getByRole('button', { name: 'Agrandir le canevas' }).click();
+  await expect(page.locator('#ds-panel')).not.toBeVisible();
+  await expectWindowFit(page);
+  await expect(
+    page
+      .locator('.catalogue')
+      .getByRole('button', { name: 'Réservation confirmée ✓' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Agrandir le canevas' }).click();
+  await expect(page.getByLabel('Valeur du token')).toHaveValue('#554433');
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
+  await page
+    .getByRole('combobox', { name: 'Viewport', exact: true })
+    .selectOption('2');
+  const frame = page.frameLocator('iframe');
+  await frame.getByRole('button', { name: 'Favoris', exact: true }).click();
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Composants', exact: true })
+    .click();
+  await page
+    .locator('.canvas-tabs')
+    .getByRole('button', { name: 'Aperçu', exact: true })
+    .click();
+  await expect(
+    frame.getByText('Vos ateliers favoris apparaîtront ici.'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('combobox', { name: 'Viewport', exact: true }),
+  ).toHaveValue('2');
+});
+
+test('fenêtre basse : inventaire, propriétés et refus restent accessibles par scroll local', async ({
+  page,
+}) => {
+  for (const [width, height] of [
+    [320, 568],
+    [844, 390],
+    [720, 450],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page
+      .getByRole('button', { name: 'Sélectionner color.brand', exact: true })
+      .click();
+    await page.getByLabel('Valeur du token').fill('#605040');
+    await page.getByRole('button', { name: 'Proposer', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Ne pas appliquer' }),
+    ).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expectWindowFit(page);
+    await page.getByRole('button', { name: 'Abandonner le brouillon' }).click();
+    await page.getByLabel('Rechercher un token').fill('no-such-token');
+    await expect(
+      page.getByText('Aucun token trouvé.', { exact: true }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Effacer la recherche' }).click();
+    await expect(
+      page.getByRole('button', {
+        name: 'Sélectionner color.brand',
+        exact: true,
+      }),
+    ).toBeVisible();
+  }
+});
+
+test('agent : conversation synthétique clairement isolée, erreur et reprise sans mutation', async ({
+  page,
+}) => {
+  await page.route('**/api/agents', (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: 'codex',
+          available: true,
+          detail: 'Fixture de test, sans fournisseur',
+        },
+      ],
+    }),
+  );
+  let calls = 0;
+  await page.route('**/api/agent', async (route) => {
+    calls++;
+    if (calls === 1)
+      return route.fulfill({
+        status: 503,
+        json: { error: 'Fixture : fournisseur indisponible, réessayez.' },
+      });
+    return route.fulfill({
+      json: {
+        message: 'Fixture de réponse. Aucun changement appliqué.',
+        proposal: null,
+      },
+    });
+  });
+  await page.goto('/');
+  const before = await (await page.request.get('/api/state')).json();
+  await page
+    .getByRole('combobox', { name: 'Mode de travail' })
+    .selectOption('codex');
+  await page
+    .getByLabel('Votre demande', { exact: true })
+    .fill('Fixture : tester la reprise du dialogue.');
+  await page.getByRole('button', { name: 'Envoyer à Codex' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'Fixture : fournisseur indisponible',
+  );
+  await expect(page.locator('.chat-message.user')).toContainText(
+    'tester la reprise',
+  );
+  await page
+    .getByLabel('Votre demande', { exact: true })
+    .fill('Fixture : reprendre.');
+  await page.getByRole('button', { name: 'Envoyer à Codex' }).click();
+  await expect(page.locator('.chat-message.assistant')).toContainText(
+    'Aucun changement appliqué',
+  );
+  const composer = await page.locator('.chat-composer').boundingBox();
+  const response = await page.locator('.chat-message.assistant').boundingBox();
+  expect(composer!.y).toBeGreaterThanOrEqual(response!.y + response!.height);
+  expect((await (await page.request.get('/api/state')).json()).revision).toBe(
+    before.revision,
+  );
+  expect(calls).toBe(2);
+  await expectWindowFit(page);
+});
+
+test('contrastes du chrome : texte et contours nécessaires à l’identification des champs', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const hex = (rgb: string) =>
+    '#' +
+    rgb
+      .match(/\d+/g)!
+      .slice(0, 3)
+      .map((value) => Number(value).toString(16).padStart(2, '0'))
+      .join('');
+  for (const selector of [
+    '.token-search input',
+    '#token-value',
+    '.token-form select',
+  ]) {
+    const colors = await page.locator(selector).evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        text: s.color,
+        background: s.backgroundColor,
+        border: s.borderTopColor,
+      };
+    });
+    expect(
+      contrast(hex(colors.text), hex(colors.background)),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrast(hex(colors.border), hex(colors.background)),
+    ).toBeGreaterThanOrEqual(3);
+    await page.locator(selector).hover();
+    const hoverColors = await page.locator(selector).evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        border: style.borderTopColor,
+        background: style.backgroundColor,
+      };
+    });
+    expect(
+      contrast(hex(hoverColors.border), hex(hoverColors.background)),
+    ).toBeGreaterThanOrEqual(3);
+  }
+  await page
+    .getByRole('combobox', { name: 'Mode de travail' })
+    .selectOption('codex');
+  const composer = await page.locator('.chat-composer').evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { background: s.backgroundColor, border: s.borderTopColor };
+  });
+  expect(
+    contrast(hex(composer.border), hex(composer.background)),
+  ).toBeGreaterThanOrEqual(3);
 });

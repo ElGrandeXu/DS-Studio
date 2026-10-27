@@ -24,3 +24,11 @@ Thumbs.db
 
 # Suivi de reprise local, non destiné à la distribution.
 /PROGRESS.md
+
+# Installation locale officielle, reproductible via docs/design-reboot/INSTALLATION.md.
+# Ne pas versionner le moteur tiers ni ses données de catalogue dans le produit.
+/.agents/skills/impeccable/
+/.impeccable/*
+!/.impeccable/config.json
+!/.impeccable/design.json
+!/.impeccable/surfaces/
