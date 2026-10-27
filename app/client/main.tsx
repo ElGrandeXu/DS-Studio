@@ -2,7 +2,10 @@ import { createRoot } from 'react-dom/client';
 import App, { Preview } from './App.js';
 import './styles.css';
 const preview = new URLSearchParams(location.search).get('preview') === '1';
-if (preview) document.body.classList.add('preview-body');
+if (preview) {
+  document.body.classList.add('preview-body');
+  document.documentElement.classList.add('preview-document');
+}
 createRoot(document.getElementById('root')!).render(
   preview ? <Preview /> : <App />,
 );

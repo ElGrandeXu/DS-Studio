@@ -82,6 +82,16 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 
 [Changelog V1/V2](docs/V2_CHANGELOG.md) · [Audit et priorités](docs/V2_AUDIT.md)
 
+## Atelier plein écran
+
+L’atelier occupe toute la fenêtre, sans défilement global. À partir de 1100 px,
+les trois panneaux restent côte à côte ; sur une fenêtre plus étroite, utilisez
+**Agent**, **Design System** et **Aperçu** pour changer de panneau sans perdre
+votre travail en cours. Seuls les contenus internes défilent. L’aperçu conserve
+sa largeur réelle, y compris lorsqu’un déplacement horizontal est nécessaire.
+
+[Rapport de refonte UI : direction artistique, audit et vérifications](docs/UI_REDESIGN_REPORT.md).
+
 ## Votre première boucle, en deux minutes
 
 1. Dans **Design System**, choisissez `color.brand`, remplacez la valeur par `#8A3B20`.

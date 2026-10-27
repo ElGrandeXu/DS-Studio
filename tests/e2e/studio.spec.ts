@@ -5,7 +5,7 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
 }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'Une source. Toutes les vues.' }),
+    page.getByRole('heading', { name: /Atelier de design/ }),
   ).toBeVisible();
   await expect(
     page.getByText('Figma non connecté', { exact: true }),
@@ -17,6 +17,13 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
     exact: true,
   });
   await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
+  const editorAction = page.getByRole('button', {
+    name: 'Proposer',
+    exact: true,
+  });
+  const chromeColor = await editorAction.evaluate(
+    (el) => getComputedStyle(el).backgroundColor,
+  );
   await page.getByLabel('Valeur du token').fill('#8A3B20');
   await page.getByRole('button', { name: 'Proposer', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -29,6 +36,7 @@ test('boucle centrale réelle : diff, validation, propagation, recharge, annulat
   await page.getByRole('button', { name: 'Proposer', exact: true }).click();
   await dialog.getByRole('button', { name: 'Valider et enregistrer' }).click();
   await expect(mainButton).toHaveCSS('background-color', 'rgb(138, 59, 32)');
+  await expect(editorAction).toHaveCSS('background-color', chromeColor);
   await expect(
     catalogue.getByRole('button', { name: 'Réserver une place', exact: true }),
   ).toHaveCSS('background-color', 'rgb(138, 59, 32)');

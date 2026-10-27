@@ -108,6 +108,8 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState('ds');
+  const historyDialog = useRef<HTMLDialogElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -122,6 +124,10 @@ export default function App() {
         .then(setAgents)
         .catch((e) => setError(e.message));
   }, [agent]);
+  useEffect(() => {
+    if (historyOpen && !proposal) historyDialog.current?.showModal();
+    else historyDialog.current?.close();
+  }, [historyOpen, proposal]);
   const current = state?.tokens[key].$value;
 
   useEffect(() => {
@@ -229,20 +235,29 @@ export default function App() {
   );
   return (
     <>
-      <a className="skip-link" href="#ds-title">
+      <a
+        className="skip-link"
+        href="#ds-title"
+        onClick={() => setActivePanel('ds')}
+      >
         Aller aux tokens
       </a>
       <header className="studio-header">
         <div className="wordmark">
-          <span className="brand-symbol">ds.</span>
+          <span className="brand-symbol" aria-hidden="true">
+            ds<span>／</span>
+          </span>
           <div>
             <strong>DS-Studio</strong>
-            <span>Votre atelier de Design System</span>
+            <span className="version-label">STUDIO / 02</span>
           </div>
         </div>
         <div className="header-status">
-          <span className="local-badge">● Local · V2</span>
-          <span className="muted">
+          <span className="local-badge">
+            <span aria-hidden="true" />
+            En local
+          </span>
+          <span className="figma-status muted">
             {boot?.figma.label ?? 'Figma non connecté'}
           </span>
           <button
@@ -253,13 +268,16 @@ export default function App() {
           </button>
         </div>
       </header>
-      <div className="intro">
+      <div className="workspace-bar">
         <div>
-          <span className="eyebrow">STARTER PÉDAGOGIQUE / M2 UX/UI</span>
-          <h1>Une source. Toutes les vues.</h1>
-          <p>
-            Explorez, proposez, validez. Construisez ensuite votre propre outil.
-          </p>
+          <span className="eyebrow">ESPACE DE TRAVAIL</span>
+          <h1>
+            Atelier de design
+            <span className="workspace-divider" aria-hidden="true">
+              /
+            </span>
+            <span className="workspace-name">Lisière</span>
+          </h1>
         </div>
         <div className="intro-actions">
           <button onClick={() => void perform(exportTokens)}>
@@ -292,7 +310,11 @@ export default function App() {
           </label>
         </div>
       </div>
-      <div className="feedback" aria-live="polite">
+      <div
+        className="feedback"
+        aria-live="polite"
+        data-visible={!!(error || stateError || notice)}
+      >
         {(error || stateError) && (
           <p className="error" role="alert">
             {error || stateError}
@@ -304,55 +326,91 @@ export default function App() {
           </p>
         )}
       </div>
-      {historyOpen && (
-        <section className="history" aria-label="Historique des changements">
-          <h2>Un historique, pas un écrasement.</h2>
-          <p>
-            Annulez un changement précis. Les autres tokens restent intacts. Une
-            annulation s’enregistre elle aussi.
-          </p>
-          {!state.history.length && <p>Aucun changement enregistré.</p>}
-          <ol>
-            {[...state.history].reverse().map((event) => (
-              <li key={event.id}>
-                <div>
-                  <strong>Révision {event.revision}</strong> · {event.source} ·{' '}
-                  <time>{new Date(event.date).toLocaleString('fr-FR')}</time>
-                  <p>{event.patches.map((p) => p.key).join(', ')}</p>
-                </div>
-                <button
-                  onClick={() =>
-                    void perform(async () =>
-                      setProposal(
-                        await request('undo', {
-                          revision: state.revision,
-                          id: event.id,
-                        }),
-                      ),
-                    )
-                  }
-                >
-                  Annuler la révision {event.revision}
-                </button>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+      <dialog
+        ref={historyDialog}
+        className="history"
+        aria-labelledby="history-title"
+        onCancel={() => setHistoryOpen(false)}
+      >
+        <div className="history-heading">
+          <div>
+            <span className="eyebrow">VERSIONS ENREGISTRÉES</span>
+            <h2 id="history-title">Historique des changements</h2>
+          </div>
+          <button
+            onClick={() => setHistoryOpen(false)}
+            aria-label="Fermer l’historique"
+          >
+            Fermer
+          </button>
+        </div>
+        <p>
+          Annulez un changement précis. Les autres tokens restent intacts. Une
+          annulation s’enregistre elle aussi.
+        </p>
+        {!state.history.length && <p>Aucun changement enregistré.</p>}
+        <ol>
+          {[...state.history].reverse().map((event) => (
+            <li key={event.id}>
+              <div>
+                <strong>Révision {event.revision}</strong> · {event.source} ·{' '}
+                <time>{new Date(event.date).toLocaleString('fr-FR')}</time>
+                <p>{event.patches.map((p) => p.key).join(', ')}</p>
+              </div>
+              <button
+                onClick={() =>
+                  void perform(async () =>
+                    setProposal(
+                      await request('undo', {
+                        revision: state.revision,
+                        id: event.id,
+                      }),
+                    ),
+                  )
+                }
+              >
+                Annuler la révision {event.revision}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </dialog>
       <nav className="panel-nav" aria-label="Panneaux de l’atelier">
-        <a href="#agent-title">1 · Contexte et assistant</a>
-        <a href="#ds-title">2 · Tokens et composants</a>
-        <a href="#mobile-title">3 · Aperçu responsive</a>
+        {[
+          ['agent', '01', 'Agent'],
+          ['ds', '02', 'Design System'],
+          ['mobile', '03', 'Aperçu'],
+        ].map(([id, index, label]) => (
+          <button
+            key={id}
+            aria-pressed={activePanel === id}
+            aria-controls={`${id}-panel`}
+            onClick={() => {
+              setActivePanel(id);
+              requestAnimationFrame(() =>
+                document.getElementById(`${id}-title`)?.focus(),
+              );
+            }}
+          >
+            <span>{index}</span>
+            {label}
+          </button>
+        ))}
       </nav>
       <main className="studio-grid">
-        <section className="panel agent-panel" aria-labelledby="agent-title">
+        <section
+          id="agent-panel"
+          data-active={activePanel === 'agent'}
+          className="panel agent-panel"
+          aria-labelledby="agent-title"
+        >
           <div className="panel-heading">
-            <span className="panel-index">A</span>
+            <span className="panel-index">01</span>
             <div>
               <h2 id="agent-title" tabIndex={-1}>
-                Contexte et assistant
+                Agent
               </h2>
-              <p>Un assistant, pas un pilote automatique</p>
+              <p>Votre contexte, vos décisions</p>
             </div>
           </div>
           <div className="panel-body">
@@ -372,20 +430,50 @@ export default function App() {
             </label>
             {agent === 'manual' ? (
               <div className="agent-empty">
-                <div className="line-icon">✳</div>
-                <h3>Le Design System vous appartient.</h3>
+                <span className="eyebrow">LE MODE MANUEL</span>
+                <h3>
+                  Du choix au
+                  <br />
+                  changement.
+                </h3>
                 <p>
-                  Aucun compte nécessaire. Sélectionnez un token dans le panneau
-                  central, modifiez sa valeur et examinez le diff avant de
-                  l’appliquer.
+                  Faites évoluer votre Design System, une décision à la fois.
+                  Sans compte IA.
                 </p>
-                <ol>
-                  <li>Choisissez une couleur.</li>
-                  <li>Proposez un changement.</li>
-                  <li>Validez et observez les deux vues.</li>
+                <ol className="workflow-steps">
+                  <li>
+                    <span>01</span>
+                    <div>
+                      <strong>Explorez les tokens</strong>
+                      <p>
+                        Choisissez une couleur, une taille ou un espacement au
+                        centre.
+                      </p>
+                    </div>
+                  </li>
+                  <li>
+                    <span>02</span>
+                    <div>
+                      <strong>Proposez une valeur</strong>
+                      <p>
+                        Comparez l’avant et l’après. Rien ne change sans votre
+                        accord.
+                      </p>
+                    </div>
+                  </li>
+                  <li>
+                    <span>03</span>
+                    <div>
+                      <strong>Observez le résultat</strong>
+                      <p>
+                        Une validation, les mêmes composants dans toutes les
+                        vues.
+                      </p>
+                    </div>
+                  </li>
                 </ol>
                 <p className="privacy-note">
-                  Les changements restent sur votre machine. Figma et l’IA sont
+                  Vos modifications restent sur ce poste. L’IA et Figma sont
                   facultatifs.
                 </p>
               </div>
@@ -448,186 +536,216 @@ export default function App() {
             )}
           </div>
           <div className="panel-foot">
-            Périmètre : contexte PFE + tokens autorisés
+            Validation humaine à chaque changement
           </div>
         </section>
-        <section className="panel ds-panel" aria-labelledby="ds-title">
+        <section
+          id="ds-panel"
+          data-active={activePanel === 'ds'}
+          className="panel ds-panel"
+          aria-labelledby="ds-title"
+        >
           <div className="panel-heading">
-            <span className="panel-index">B</span>
+            <span className="panel-index">02</span>
             <div>
               <h2 id="ds-title" tabIndex={-1}>
                 Design System
               </h2>
-              <p>Lisière · exemple fictif, sources locales</p>
+              <p>Les fondations et leurs composants</p>
             </div>
             <span className="revision-tag">r{state.revision}</span>
           </div>
-          <div className="token-editor">
-            <div className="editor-title">
-              <h3>Tokens sémantiques</h3>
-              <span>{tokenKeys.length} tokens</span>
-            </div>
-            <label className="field token-search">
-              Rechercher un token
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="color, space, font…"
-              />
-            </label>
-            <p className="token-hint" role="status">
-              {matchingKeys.length} résultat(s).{' '}
-              {search && 'La sélection courante reste accessible.'}
-            </p>
-            <div className="swatches">
-              {matchingKeys
-                .filter((k) => k.startsWith('color.'))
-                .map((k) => (
-                  <button
-                    title={k}
-                    aria-label={`Sélectionner ${k}`}
-                    aria-pressed={key === k}
-                    key={k}
-                    style={{ background: String(state.tokens[k].$value) }}
-                    onClick={() => setKey(k)}
-                  >
-                    <span className="sr-only">{k}</span>
-                  </button>
-                ))}
-            </div>
-            <form
-              className="token-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void proposeToken();
-              }}
-            >
-              <label className="field">
-                Token
-                <select
-                  value={key}
-                  onChange={(e) => setKey(e.target.value as TokenKey)}
-                >
-                  {[...new Set([key, ...matchingKeys])].map((k) => (
-                    <option key={k}>{k}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                Valeur
-                {state.tokens[key].$type === 'fontFamily' ? (
-                  <select
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                  >
-                    {['system-ui', 'Arial', 'Georgia', 'Verdana'].map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    aria-label="Valeur du token"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    required
-                    type={
-                      state.tokens[key].$type === 'dimension'
-                        ? 'number'
-                        : 'text'
-                    }
-                    min={
-                      state.tokens[key].$type === 'dimension' ? 0 : undefined
-                    }
-                    max={
-                      state.tokens[key].$type === 'dimension' ? 128 : undefined
-                    }
-                    step={
-                      state.tokens[key].$type === 'dimension'
-                        ? 'any'
-                        : undefined
-                    }
-                    maxLength={20}
-                  />
-                )}
-              </label>
-              <button
-                className="studio-primary"
-                disabled={!boot || draft === String(current)}
-              >
-                Proposer
-              </button>
-            </form>
-            {state.tokens[key].$type === 'color' && (
-              <label className="color-picker">
-                Choisir visuellement
+          <div className="ds-scroll">
+            <div className="token-editor">
+              <div className="editor-title">
+                <h3>Tokens sémantiques</h3>
+                <span>{tokenKeys.length} tokens</span>
+              </div>
+              <label className="field token-search">
+                <span className="sr-only">Rechercher un token</span>
                 <input
-                  aria-label="Sélecteur de couleur"
-                  type="color"
-                  value={
-                    /^#[0-9a-fA-F]{6}$/.test(draft) ? draft : String(current)
-                  }
-                  onChange={(e) => setDraft(e.target.value)}
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Rechercher un token : color, space, font…"
                 />
               </label>
-            )}
-            {draft !== String(current) && (
-              <p className="draft-status" role="status">
-                {recovered
-                  ? 'Brouillon récupéré dans cet onglet.'
-                  : 'Brouillon non enregistré.'}{' '}
-                Rien n’est appliqué.
-                <button type="button" onClick={discard}>
-                  Abandonner le brouillon
-                </button>
+              <p className="token-hint" role="status">
+                {search &&
+                  `${matchingKeys.length} résultat(s). La sélection courante reste accessible.`}
               </p>
-            )}
-            <p className="token-hint">
-              {state.tokens[key].$type === 'color'
-                ? '#RRGGBB · '
-                : state.tokens[key].$type === 'dimension'
-                  ? 'Pixels, de 0 à 128 · '
-                  : ''}
-              Rien n’est écrit avant validation.
-            </p>
-            <p className="contrast" aria-live="polite">
-              Marque / texte sur marque :{' '}
-              <strong>
+              <div className="swatches">
+                {matchingKeys
+                  .filter((k) => k.startsWith('color.'))
+                  .map((k) => (
+                    <button
+                      title={k}
+                      aria-label={`Sélectionner ${k}`}
+                      aria-pressed={key === k}
+                      key={k}
+                      style={{ background: String(state.tokens[k].$value) }}
+                      onClick={() => setKey(k)}
+                    >
+                      <span className="sr-only">{k}</span>
+                    </button>
+                  ))}
+              </div>
+              <form
+                className="token-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void proposeToken();
+                }}
+              >
+                <label className="field">
+                  Token
+                  <select
+                    value={key}
+                    onChange={(e) => setKey(e.target.value as TokenKey)}
+                  >
+                    {[...new Set([key, ...matchingKeys])].map((k) => (
+                      <option key={k}>{k}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="field">
+                  <label htmlFor="token-value">Valeur</label>
+                  <div className="value-control">
+                    {state.tokens[key].$type === 'color' && (
+                      <input
+                        aria-label="Sélecteur de couleur"
+                        type="color"
+                        value={
+                          /^#[0-9a-fA-F]{6}$/.test(draft)
+                            ? draft
+                            : String(current)
+                        }
+                        onChange={(e) => setDraft(e.target.value)}
+                      />
+                    )}
+                    {state.tokens[key].$type === 'fontFamily' ? (
+                      <select
+                        id="token-value"
+                        aria-label="Valeur du token"
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                      >
+                        {['system-ui', 'Arial', 'Georgia', 'Verdana'].map(
+                          (f) => (
+                            <option key={f}>{f}</option>
+                          ),
+                        )}
+                      </select>
+                    ) : (
+                      <input
+                        id="token-value"
+                        aria-label="Valeur du token"
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        required
+                        type={
+                          state.tokens[key].$type === 'dimension'
+                            ? 'number'
+                            : 'text'
+                        }
+                        min={
+                          state.tokens[key].$type === 'dimension'
+                            ? 0
+                            : undefined
+                        }
+                        max={
+                          state.tokens[key].$type === 'dimension'
+                            ? 128
+                            : undefined
+                        }
+                        step={
+                          state.tokens[key].$type === 'dimension'
+                            ? 'any'
+                            : undefined
+                        }
+                        maxLength={20}
+                      />
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="studio-primary"
+                  disabled={!boot || draft === String(current)}
+                >
+                  Proposer
+                </button>
+              </form>
+              {draft !== String(current) && (
+                <p className="draft-status" role="status">
+                  {recovered
+                    ? 'Brouillon récupéré dans cet onglet.'
+                    : 'Brouillon non enregistré.'}{' '}
+                  Rien n’est appliqué.
+                  <button type="button" onClick={discard}>
+                    Abandonner le brouillon
+                  </button>
+                </p>
+              )}
+              <p className="token-hint">
+                {state.tokens[key].$type === 'color'
+                  ? '#RRGGBB · '
+                  : state.tokens[key].$type === 'dimension'
+                    ? 'Pixels, de 0 à 128 · '
+                    : ''}
+                Rien n’est écrit avant validation.
+              </p>
+              <p className="contrast" aria-live="polite">
+                Marque / texte sur marque :{' '}
+                <strong>
+                  {contrast(
+                    state.tokens['color.brand'].$value,
+                    state.tokens['color.onBrand'].$value,
+                  ).toFixed(2)}
+                  :1
+                </strong>{' '}
+                ·{' '}
                 {contrast(
                   state.tokens['color.brand'].$value,
                   state.tokens['color.onBrand'].$value,
-                ).toFixed(2)}
-                :1
-              </strong>{' '}
-              ·{' '}
-              {contrast(
-                state.tokens['color.brand'].$value,
-                state.tokens['color.onBrand'].$value,
-              ) >= 4.5
-                ? 'AA texte courant'
-                : 'Contraste à améliorer'}
-            </p>
-            {draftContrast !== undefined && draft !== String(current) && (
-              <p className="contrast" role="status">
-                Contraste proposé :{' '}
-                <strong>{draftContrast.toFixed(2)}:1</strong> ·{' '}
-                {draftContrast >= 4.5
+                ) >= 4.5
                   ? 'AA texte courant'
                   : 'Contraste à améliorer'}
-                . Cette indication ne certifie pas tous les états du composant.
               </p>
-            )}
+              {draftContrast !== undefined && draft !== String(current) && (
+                <p className="contrast" role="status">
+                  Contraste proposé :{' '}
+                  <strong>{draftContrast.toFixed(2)}:1</strong> ·{' '}
+                  {draftContrast >= 4.5
+                    ? 'AA texte courant'
+                    : 'Contraste à améliorer'}
+                  . Cette indication ne certifie pas tous les états du
+                  composant.
+                </p>
+              )}
+            </div>
+            <div className="catalogue-heading">
+              <span className="eyebrow">BIBLIOTHÈQUE</span>
+              <span>Composants en direct</span>
+            </div>
+            <Catalogue tokens={state.tokens} />
           </div>
-          <Catalogue tokens={state.tokens} />
+          <div className="panel-foot">
+            Lisière · exemple fictif · {tokenKeys.length} tokens partagés
+          </div>
         </section>
-        <section className="panel mobile-panel" aria-labelledby="mobile-title">
+        <section
+          id="mobile-panel"
+          data-active={activePanel === 'mobile'}
+          className="panel mobile-panel"
+          aria-labelledby="mobile-title"
+        >
           <div className="panel-heading">
-            <span className="panel-index">C</span>
+            <span className="panel-index">03</span>
             <div>
               <h2 id="mobile-title" tabIndex={-1}>
                 Aperçu responsive
               </h2>
-              <p>De vrais composants, à largeur réelle</p>
+              <p>Votre système, en situation</p>
             </div>
           </div>
           <div className="preview-controls">
@@ -655,7 +773,16 @@ export default function App() {
               </select>
             </label>
           </div>
-          <div className="viewport-scroll">
+          <div
+            className="viewport-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Zone de prévisualisation, défilement horizontal pour les grands écrans"
+          >
+            <div className="viewport-label">
+              <span>{device === 3 ? 'DESKTOP' : 'MOBILE'}</span>
+              <span>{devices[device].width} px · 1:1</span>
+            </div>
             <iframe
               title="Aperçu responsive"
               src={`/?preview=1&scenario=${scenario}`}
@@ -664,14 +791,13 @@ export default function App() {
             />
           </div>
           <div className="panel-foot">
-            {devices[device].width} px CSS · aucun zoom appliqué · défilez si
-            nécessaire
+            {devices[device].width} px CSS · sans zoom · défilez si nécessaire
           </div>
         </section>
       </main>
       <footer className="studio-footer">
-        <span>DS-Studio V2 · Fait pour être transformé.</span>
-        <span>JSON local → validation → composants partagés</span>
+        <span>Une source. Toutes les vues.</span>
+        <span>Modifiez un token. Validez. Comparez les vues.</span>
       </footer>
       <dialog
         ref={dialog}
